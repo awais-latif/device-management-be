@@ -1,0 +1,38 @@
+server:
+  port: ${SERVER_PORT:8081}
+spring:
+  application:
+    name: device-management-be
+
+  profiles:
+    default: local
+
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      pool-name: device-management-pool
+      maximum-pool-size: 10
+      minimum-idle: 2
+      connection-timeout: 30000
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+
+  liquibase:
+    change-log: classpath:liquibase/change-log-master.xml
+    database-change-log-table: db_change_log
+    database-change-log-lock-table: db_change_log_lock
+    default-schema: public
+    liquibase-schema: public
+    enabled: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: when-authorized

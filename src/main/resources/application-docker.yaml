@@ -1,0 +1,13 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:postgres}:${DB_PORT:5432}/${DB_NAME:device_management_be}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:postgres}
+  liquibase:
+    url: jdbc:postgresql://${DB_HOST:postgres}:${DB_PORT:5432}/${DB_NAME:device_management_be}
+    user: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:postgres}
+
+logging:
+  level:
+    org.hibernate.SQL: info

@@ -1,0 +1,11 @@
+openapi: 3.0.3
+info:
+  title: Device Management API
+  description: REST API for persisting and managing device resources.
+  version: 1.0.0
+
+servers:
+  - url: /api/v1
+    description: Base path for all endpoints
+
+paths: {}
