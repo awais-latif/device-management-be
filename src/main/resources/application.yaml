@@ -4,6 +4,9 @@ spring:
   application:
     name: device-management-be
 
+  jackson:
+    default-property-inclusion: non_null
+
   datasource:
     driver-class-name: org.postgresql.Driver
     hikari:

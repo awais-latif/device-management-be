@@ -5,7 +5,7 @@ info:
   version: 1.0.0
 
 servers:
-  - url: /api/v1
+  - url: /
     description: Base path for all endpoints
 
 tags:
@@ -13,7 +13,7 @@ tags:
     description: Operations on device resources
 
 paths:
-  /devices:
+  /api/v1/devices:
     post:
       tags: [Devices]
       operationId: createDevice
@@ -102,7 +102,7 @@ paths:
         '400':
           $ref: '#/components/responses/BadRequest'
 
-  /devices/{id}:
+  /api/v1/devices/{id}:
     parameters:
       - name: id
         in: path
@@ -169,11 +169,11 @@ components:
     DeviceState:
       type: string
       description: State of a device.
-      example: AVAILABLE
+      example: available
       enum:
-        - AVAILABLE
-        - IN_USE
-        - INACTIVE
+        - available
+        - in-use
+        - inactive
 
     Device:
       type: object
@@ -229,7 +229,7 @@ components:
         state:
           allOf:
             - $ref: '#/components/schemas/DeviceState'
-          default: AVAILABLE
+          default: available
           description: Initial state of the device
 
       required:
@@ -324,6 +324,21 @@ components:
           type: string
           description: Request path
           example: /api/v1/devices/3f2a1c9e
+        validationErrors:
+          type: array
+          description: Present only for 400 responses caused by field-level validation failures
+          items:
+            $ref: '#/components/schemas/ValidationError'
+
+    ValidationError:
+      type: object
+      properties:
+        field:
+          type: string
+          example: name
+        message:
+          type: string
+          example: must not be blank
 
   responses:
     BadRequest:
