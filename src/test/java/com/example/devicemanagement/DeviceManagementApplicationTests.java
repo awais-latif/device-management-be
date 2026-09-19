@@ -1,6 +1,6 @@
-package org.devicemanagement;
+package com.example.devicemanagement;
 
-import org.devicemanagement.configuration.AbstractIntegrationTest;
+import com.example.devicemanagement.configuration.AbstractIntegrationTest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
