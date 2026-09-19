@@ -1,4 +1,4 @@
-package org.devicemanagement.configuration;
+package com.example.devicemanagement.configuration;
 
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
