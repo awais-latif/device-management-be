@@ -92,6 +92,14 @@ schema setup step.
 
 The application listens on port `8081`.
 
+To run the application and PostgreSQL in containers:
+
+```bash
+docker compose up --build
+```
+
+This uses the docker profile and connects to the postgres service from inside the Docker network.
+
 ## Tests
 
 Run the test suite with:
