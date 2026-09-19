@@ -9,7 +9,7 @@ you from changing things out from under whoever is using it.
 
 The service enforces these rules:
 
-* The server sets `creationTime` when it creates the device. It can't be set or
+* The server sets `createdAt` when it creates the device. It can't be set or
   changed through the API.
 * While a device is `IN_USE`, its name and brand are frozen.
 * An `IN_USE` device can't be deleted. It has to leave that state first.
@@ -120,6 +120,9 @@ With the application running:
 * Swagger UI: `http://localhost:8081/swagger-ui/index.html`
 * OpenAPI JSON: `http://localhost:8081/v3/api-docs`
 
+The repository also contains a pre-generated static API reference at
+[Static API documentation](docs/device-management-api.html) using [Redocly](https://redocly.com/). It can be opened directly in a browser without running the
+application.
 
 ## Why it's built this way
 

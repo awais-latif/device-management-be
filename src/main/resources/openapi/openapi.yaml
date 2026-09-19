@@ -8,4 +8,341 @@ servers:
   - url: /api/v1
     description: Base path for all endpoints
 
-paths: {}
+tags:
+  - name: Devices
+    description: Operations on device resources
+
+paths:
+  /devices:
+    post:
+      tags: [Devices]
+      operationId: createDevice
+      summary: Create a new device
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateDeviceRequest'
+      responses:
+        '201':
+          description: Device created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Device'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+    get:
+      tags: [Devices]
+      operationId: listDevices
+      summary: Fetch all devices, optionally filtered by brand and/or state. default sort is createdAt desc
+      parameters:
+        - name: brand
+          in: query
+          required: false
+          description: Filter by exact brand match
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 255
+        - name: state
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/DeviceState'
+        - name: page
+          in: query
+          required: false
+          description: Current page
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - name: size
+          in: query
+          required: false
+          description: Max items per page
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: sortBy
+          in: query
+          required: false
+          description: Sort by field
+          schema:
+            type: string
+            enum:
+              - createdAt
+              - name
+              - brand
+              - state
+            default: createdAt
+        - name: sortDirection
+          in: query
+          required: false
+          description: Order by either desc or asc
+          schema:
+            type: string
+            enum:
+              - asc
+              - desc
+            default: desc
+
+      responses:
+        '200':
+          description: Paginated list of devices matching the given filters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DevicePage'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /devices/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: Unique id of device
+        schema:
+          type: string
+          format: uuid
+    get:
+      tags: [Devices]
+      operationId: getDevice
+      summary: Fetch a single device by id
+      responses:
+        '200':
+          description: Device found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Device'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+
+    patch:
+      tags: [Devices]
+      operationId: updateDevice
+      summary: Partially or fully update an existing device
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchDeviceRequest'
+      responses:
+        '200':
+          description: Device updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Device'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+    delete:
+      tags: [Devices]
+      operationId: deleteDevice
+      summary: Delete a single device
+      responses:
+        '204':
+          description: Device deleted
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+components:
+  schemas:
+    DeviceState:
+      type: string
+      description: State of a device.
+      example: AVAILABLE
+      enum:
+        - AVAILABLE
+        - IN_USE
+        - INACTIVE
+
+    Device:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        name:
+          type: string
+          description: Name of device
+          example: device xyz
+        brand:
+          type: string
+          description: Brand of device
+          example: Mac
+        state:
+          $ref: '#/components/schemas/DeviceState'
+        createdAt:
+          type: string
+          format: date-time
+          description: When device was created
+          example: 2026-09-19T16:07:48.163Z
+          readOnly: true
+        updatedAt:
+          type: string
+          format: date-time
+          description: When device was last updated
+          example: 2026-09-19T16:07:48.163Z
+          readOnly: true
+      required:
+        - id
+        - name
+        - brand
+        - state
+        - createdAt
+
+    CreateDeviceRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Name of the device
+          example: device xyz
+          minLength: 1
+          maxLength: 255
+        brand:
+          type: string
+          description: Brand of device
+          example: Mac
+          minLength: 1
+          maxLength: 255
+        state:
+          allOf:
+            - $ref: '#/components/schemas/DeviceState'
+          default: AVAILABLE
+          description: Initial state of the device
+
+      required:
+        - name
+        - brand
+
+    UpdateDeviceRequest:
+      type: object
+      description: Full replacement of a device's mutable fields.
+      properties:
+        name:
+          type: string
+          description: Name of device
+          minLength: 1
+          maxLength: 255
+          example: device xyz
+        brand:
+          type: string
+          minLength: 1
+          maxLength: 255
+          description: Brand of device
+          example: Mac
+        state:
+          $ref: '#/components/schemas/DeviceState'
+      required:
+        - name
+        - brand
+        - state
+
+    PatchDeviceRequest:
+      type: object
+      description: Partial update device, only fields present in the request body are applied
+      properties:
+        name:
+          type: string
+          description: Name of device
+          minLength: 1
+          maxLength: 255
+          example: device xyz
+        brand:
+          type: string
+          minLength: 1
+          maxLength: 255
+          description: Brand of device
+          example: Mac
+        state:
+          $ref: '#/components/schemas/DeviceState'
+
+    DevicePage:
+      type: object
+      properties:
+        content:
+          type: array
+          description: List of items
+          items:
+            $ref: '#/components/schemas/Device'
+        pageNumber:
+          type: integer
+          description: Current page
+        pageSize:
+          type: integer
+          description: Items on current page
+        totalElements:
+          type: integer
+          format: int64
+          description: Total items
+        totalPages:
+          type: integer
+          description: Total no of pages
+
+    ErrorResponse:
+      type: object
+      description: Standard error response
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+          example: 2026-09-19T16:07:48.163Z
+        status:
+          type: integer
+          description: HTTP status code
+          example: 404
+        code:
+          type: string
+          description: Error code for operation failure
+          example: DEVICE_NOT_FOUND
+        message:
+          type: string
+          description: Human readable error message
+          example: device not found
+        path:
+          type: string
+          description: Request path
+          example: /api/v1/devices/3f2a1c9e
+
+  responses:
+    BadRequest:
+      description: Invalid request payload
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    NotFound:
+      description: Device not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    Conflict:
+      description: Device cannot be modified because of its current state.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
