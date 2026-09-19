@@ -121,7 +121,7 @@ With the application running:
 * OpenAPI JSON: `http://localhost:8081/v3/api-docs`
 
 The repository also contains a pre-generated static API reference at
-[Static API documentation](docs/device-management-api.html) using [Redocly](https://redocly.com/). It can be opened directly in a browser without running the
+[Device management API documentation](src/main/resources/docs/device-management-api.html) using [Redocly](https://redocly.com/). It can be opened directly in a browser without running the
 application.
 
 ## Why it's built this way
