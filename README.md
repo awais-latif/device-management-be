@@ -11,12 +11,12 @@ The service enforces these rules:
 
 * The server sets `createdAt` when it creates the device. It can't be set or
   changed through the API.
-* While a device is `IN_USE`, its name and brand are frozen.
-* An `IN_USE` device can't be deleted. It has to leave that state first.
+* While a device is `in-use`, its name and brand are frozen.
+* An `in-use` device can't be deleted. It has to leave that state first.
 * List endpoints are paginated to avoid unbounded responses.
 * The brand and state filters can be combined.
 
-A device is `AVAILABLE`, `IN_USE`, or `INACTIVE`.
+A device is `available`, `in-use`, or `inactive`.
 
 The OpenAPI specification is the source of truth for the API contract, and
 controller interfaces are generated from it.
@@ -42,21 +42,21 @@ are intended for local development and should be overridden in other
 environments.
 
 | Variable      | Default                | What it's for                   |
-| ------------- | ---------------------- | ------------------------------- |
+|---------------|------------------------|---------------------------------|
 | `SERVER_PORT` | `8081`                 | Port the application listens on |
 | `DB_HOST`     | `localhost`            | PostgreSQL host                 |
-| `DB_PORT`     | `5432`                 | PostgreSQL port                 |
+| `DB_PORT`     | `5433`                 | PostgreSQL port                 |
 | `DB_NAME`     | `device_management_be` | Database name                   |
 | `DB_USERNAME` | `postgres`             | Database user                   |
 | `DB_PASSWORD` | `postgres`             | Database password               |
 
 ### Profiles
 
-| Profile  | When it applies                                              |
-| -------- | ------------------------------------------------------------ |
-| `local`  | Default profile. Development against PostgreSQL on localhost |
-| `docker` | Application running inside Docker Compose                    |
-| `test`   | Automated tests using Testcontainers                         |
+| Profile  | When it applies                             |
+|----------|---------------------------------------------|
+| `local`  | Development against PostgreSQL on localhost |
+| `docker` | Application running inside Docker Compose   |
+| `test`   | Automated tests using Testcontainers        |
 
 The profile can be selected with:
 
@@ -84,7 +84,7 @@ Then build and run:
 
 ```bash
 mvn clean verify
-mvn spring-boot:run
+mvn spring-boot:run -Dspring-boot.run.profiles=local
 ```
 
 Liquibase runs the database migrations on startup, so there is no separate

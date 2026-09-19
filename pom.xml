@@ -17,6 +17,7 @@
     <properties>
         <java.version>25</java.version>
         <openapi-generator.version>7.8.0</openapi-generator.version>
+        <lombok.version>1.18.46</lombok.version>
     </properties>
     <dependencies>
         <dependency>
@@ -99,6 +100,11 @@
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-webmvc-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-testcontainers</artifactId>
             <scope>test</scope>
         </dependency>
@@ -131,7 +137,19 @@
                     </excludes>
                 </configuration>
             </plugin>
-
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <annotationProcessorPaths>
+                        <path>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                            <version>${lombok.version}</version>
+                        </path>
+                    </annotationProcessorPaths>
+                </configuration>
+            </plugin>
             <plugin>
                 <groupId>org.openapitools</groupId>
                 <artifactId>openapi-generator-maven-plugin</artifactId>
@@ -146,6 +164,11 @@
                             <generatorName>spring</generatorName>
                             <apiPackage>com.example.devicemanagement.generated.api</apiPackage>
                             <modelPackage>com.example.devicemanagement.generated.model</modelPackage>
+                            <schemaMappings>
+                                <schemaMapping>
+                                    DeviceState=com.example.devicemanagement.enums.DeviceState
+                                </schemaMapping>
+                            </schemaMappings>
                             <configOptions>
                                 <openApiNullable>false</openApiNullable>
                                 <interfaceOnly>true</interfaceOnly>
