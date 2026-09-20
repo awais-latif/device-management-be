@@ -26,6 +26,7 @@ import com.example.devicemanagement.generated.model.CreateDeviceRequest;
 import com.example.devicemanagement.generated.model.Device;
 import com.example.devicemanagement.generated.model.DevicePage;
 import com.example.devicemanagement.generated.model.DeviceSortField;
+import com.example.devicemanagement.generated.model.PatchDeviceRequest;
 import com.example.devicemanagement.generated.model.SortDirection;
 import com.example.devicemanagement.model.DeviceEntity;
 import com.example.devicemanagement.repository.DeviceEntityRepository;
@@ -131,7 +132,7 @@ class DeviceServiceImplTest {
 
         Assertions.assertThatThrownBy(() -> deviceService.deleteDevice(ID))
                 .isInstanceOf(DeviceInUseException.class)
-                .hasMessage("Device is in use and cannot be deleted: " + ID);
+                .hasMessage("Device is in use and cannot be deleted");
 
         Mockito.verify(deviceRepository, Mockito.never())
                 .delete(ArgumentMatchers.any(DeviceEntity.class));
@@ -214,5 +215,117 @@ class DeviceServiceImplTest {
                         .getSort()
                         .toString())
                 .isEqualTo("createdAt: DESC,id: ASC");
+    }
+
+    @Test
+    void changeOnlyFieldsProvidedInRequest() {
+        DeviceEntity stored = storedDevice(DeviceState.AVAILABLE);
+        Mockito.when(deviceRepository.findById(ID))
+                .thenReturn(Optional.of(stored));
+        Mockito.when(deviceRepository.saveAndFlush(stored))
+                .thenReturn(stored);
+
+        Device updated = deviceService.updateDevice(ID, new PatchDeviceRequest().name("device abc"));
+
+        Assertions.assertThat(updated.getName())
+                .isEqualTo("device abc");
+        Assertions.assertThat(stored.getBrand())
+                .isEqualTo("Mac");
+        Assertions.assertThat(stored.getState())
+                .isEqualTo(DeviceState.AVAILABLE);
+    }
+
+    @Test
+    void notAllowToChangenameDeviceInUse() {
+        DeviceEntity stored = storedDevice(DeviceState.IN_USE);
+        Mockito.when(deviceRepository.findById(ID))
+                .thenReturn(Optional.of(stored));
+
+        Assertions.assertThatThrownBy(
+                        () -> deviceService.updateDevice(ID, new PatchDeviceRequest().name("device abc")))
+                .isInstanceOf(DeviceInUseException.class)
+                .hasMessage("Device is in use, name and brand cannot be changed");
+
+        Assertions.assertThat(stored.getName())
+                .isEqualTo("device xyz");
+        Mockito.verify(deviceRepository, Mockito.never())
+                .saveAndFlush(ArgumentMatchers.any(DeviceEntity.class));
+    }
+
+    @Test
+    void notAllowToChangeBrandDeviceInUse() {
+        DeviceEntity stored = storedDevice(DeviceState.IN_USE);
+        Mockito.when(deviceRepository.findById(ID))
+                .thenReturn(Optional.of(stored));
+
+        Assertions.assertThatThrownBy(
+                        () -> deviceService.updateDevice(ID, new PatchDeviceRequest().brand("Dell")))
+                .isInstanceOf(DeviceInUseException.class)
+                .hasMessage("Device is in use, name and brand cannot be changed");
+    }
+
+    @Test
+    void allowsStateChangeWhileInUse() {
+        DeviceEntity stored = storedDevice(DeviceState.IN_USE);
+        Mockito.when(deviceRepository.findById(ID))
+                .thenReturn(Optional.of(stored));
+        Mockito.when(deviceRepository.saveAndFlush(stored))
+                .thenReturn(stored);
+
+        Device updated = deviceService.updateDevice(ID,
+                new PatchDeviceRequest().state(DeviceState.AVAILABLE));
+
+        Assertions.assertThat(updated.getState())
+                .isEqualTo(DeviceState.AVAILABLE);
+    }
+
+    @Test
+    void allowsSameNameAndBrandWhileInUse() {
+        DeviceEntity stored = storedDevice(DeviceState.IN_USE);
+        Mockito.when(deviceRepository.findById(ID))
+                .thenReturn(Optional.of(stored));
+        Mockito.when(deviceRepository.saveAndFlush(stored))
+                .thenReturn(stored);
+
+        Device updated = deviceService.updateDevice(ID, new PatchDeviceRequest()
+                .name("device xyz")
+                .brand("Mac")
+                .state(DeviceState.AVAILABLE));
+
+        Assertions.assertThat(updated.getState())
+                .isEqualTo(DeviceState.AVAILABLE);
+    }
+
+    @Test
+    void checkIfNameChangeChangeStateInUseToAvailable() {
+        DeviceEntity stored = storedDevice(DeviceState.IN_USE);
+        Mockito.when(deviceRepository.findById(ID))
+                .thenReturn(Optional.of(stored));
+
+        Assertions.assertThatThrownBy(() -> deviceService.updateDevice(ID, new PatchDeviceRequest()
+                        .name("renamed")
+                        .state(DeviceState.AVAILABLE)))
+                .isInstanceOf(DeviceInUseException.class);
+    }
+
+    @Test
+    void failsToUpdateNotExitingDevice() {
+        Mockito.when(deviceRepository.findById(ID))
+                .thenReturn(Optional.empty());
+
+        Assertions.assertThatThrownBy(
+                        () -> deviceService.updateDevice(ID, new PatchDeviceRequest().name("renamed")))
+                .isInstanceOf(DeviceNotFoundException.class);
+    }
+
+    private DeviceEntity storedDevice(DeviceState state) {
+        return DeviceEntity.builder()
+                .id(ID)
+                .name("device xyz")
+                .brand("Mac")
+                .state(state)
+                .createdAt(CREATED_AT)
+                .version(0L)
+                .build();
     }
 }

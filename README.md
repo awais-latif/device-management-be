@@ -21,15 +21,15 @@ controller interfaces are generated from it.
 ## Tech stack
 
 | Concern            | Choice                                                     |
-| ------------------ | ---------------------------------------------------------- |
+|--------------------|------------------------------------------------------------|
 | Language / runtime | Java 25                                                    |
 | Framework          | Spring Boot 4.1.1                                          |
 | Build              | Maven                                                      |
 | Database           | PostgreSQL                                                 |
 | Migrations         | Liquibase                                                  |
 | API contract       | OpenAPI 3, generated with `openapi-generator-maven-plugin` |
-| API docs           | Swagger UI                    |
-| Testing            | JUnit 5, Mockito, Testcontainers                           |
+| API docs           | Swagger UI                                                 |
+| Testing            | JUnit 5, Mockito, AssertJ, Testcontainers                  |
 | Packaging          | Docker, Docker Compose                                     |
 
 ## Configuration
@@ -46,6 +46,8 @@ environments.
 | `DB_NAME`     | `device_management_be` | Database name                   |
 | `DB_USERNAME` | `postgres`             | Database user                   |
 | `DB_PASSWORD` | `postgres`             | Database password               |
+
+`DB_PORT` is `5433` for local and `5432` inside Docker.
 
 ### Profiles
 
@@ -146,7 +148,7 @@ it.
 
 ## Assumptions
 
-The requirements left a few things open. I made assumption as defined below.
+The requirements left a few things open. I made assumptions as defined below.
 
 Device fields
 
@@ -156,22 +158,31 @@ Device fields
   suggested they need to be unique.
 * State defaults to available when the create request does not provide state.
 * The server owns id and createdAt. Client can not set them.
-* `updatedAt` is not in the required domain, I added it because tracing last update.
+* `updatedAt` is not in the required domain, I added it for tracing last update.
+* `createdAt` and `updatedAt` both timestamps are always UTC, so they end with `Z` in response.
 
 Fetching
 
-* Filtering by brand and/or state are added in single GET Api.
+* Filtering by brand and/or state are added in single GET API.
 * Brand matching is exact and case sensitive.
 * Get all is paginated with page metadata. The requirements didn't ask for paging, but an endpoint that returns the
   whole table is not something I would ship.
 * Page size is between 1 and 100, default 20.
 * Default sort is createdAt desc, so the newest device comes first. Sorting is allowed on createdAt, name, brand and
-  state. Id is added as a tiebreaker to have consistance order.
+  state. Id is added as a tiebreaker to have consistent order.
 * If filter found nothing, it will be empty list response.
 
 Changing devices
 
 * Delete removes the row. There is no soft delete or archive (audit or history).
+* Patch covers full update as well, because every mutable field is required. So, if want full update provide all mutable
+  fields.
+* Only the fields which are in patch request body are considered for change. A field left out is not touched, so
+  there is no way to clear one and as all mutable field are required so it does not matter.
+* Sending not changed values in patch while device is in-use, are not rejected. Request will be rejected when values are
+  different.
+* If device is in-use and patch changes state along with other fields, it will not be allowed. State should be changed
+  first, then updates of other data are allowed.
 
 ## Out of scope / future improvements
 
@@ -185,6 +196,8 @@ Changing devices
   requirements do not describe a device lifecycle, so I did not invent one.
 * Audit or history. There is no record of what changed. This is also what a soft
   delete would need.
+* Auditing the user. When authorization is implemented, record who created and who
+  last updated a device. These details can be got from the security context.
 * Rate limiting. Nothing stops a client from hammering the list endpoint.
 * Brand as its own thing. It is a free text column, so two spellings of the same
   brand are two brands. A lookup table would fix that, and would make the brand
