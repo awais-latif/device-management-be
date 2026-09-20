@@ -41,10 +41,14 @@ public class DeviceMapper {
             return null;
         }
         return DeviceEntity.builder()
-                .name(deviceRequest.getName())
-                .brand(deviceRequest.getBrand())
+                .name(trimmed(deviceRequest.getName()))
+                .brand(trimmed(deviceRequest.getBrand()))
                 .state(deviceRequest.getState() != null ? deviceRequest.getState() : DeviceState.AVAILABLE)
                 .build();
+    }
+
+    private static String trimmed(String value) {
+        return value != null ? value.trim() : null;
     }
 
     /**
