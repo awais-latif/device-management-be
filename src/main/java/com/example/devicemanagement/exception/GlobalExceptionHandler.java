@@ -1,6 +1,7 @@
 package com.example.devicemanagement.exception;
 
 import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.Comparator;
 import java.util.List;
 
@@ -151,7 +152,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
             List<ValidationError> validationErrors, WebRequest request) {
 
         return new ErrorResponse()
-                .timestamp(OffsetDateTime.now())
+                .timestamp(OffsetDateTime.now(ZoneOffset.UTC))
                 .status(status.value())
                 .code(code)
                 .message(message)

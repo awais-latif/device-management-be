@@ -63,6 +63,8 @@ class DeviceControllerTest {
                         .value(ID.toString()))
                 .andExpect(MockMvcResultMatchers.jsonPath("$.state")
                         .value("in-use"))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.createdAt")
+                        .value("2026-09-19T16:07:48.163Z"))
                 .andExpect(MockMvcResultMatchers.jsonPath("$.updatedAt")
                         .doesNotExist());
     }
@@ -102,6 +104,18 @@ class DeviceControllerTest {
                         .value("Device not found for Id: " + ID))
                 .andExpect(MockMvcResultMatchers.jsonPath("$.path")
                         .value(DEVICES + "/" + ID));
+    }
+
+    @Test
+    void errorTimestampIsUtc() throws Exception {
+        Mockito.when(deviceService.getDevice(ID))
+                .thenThrow(new DeviceNotFoundException(ID));
+
+        mockMvc.perform(MockMvcRequestBuilders.get(DEVICES + "/" + ID))
+                .andExpect(MockMvcResultMatchers.status()
+                        .isNotFound())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.timestamp")
+                        .value(Matchers.endsWith("Z")));
     }
 
     @Test
