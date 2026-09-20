@@ -1,5 +1,7 @@
 package com.example.devicemanagement.service;
 
+import java.util.UUID;
+
 import com.example.devicemanagement.generated.model.CreateDeviceRequest;
 import com.example.devicemanagement.generated.model.Device;
 
@@ -12,4 +14,13 @@ public interface DeviceService {
      * @return response object
      */
     Device createDevice(CreateDeviceRequest request);
+
+    /**
+     * Get a single device having given id.
+     *
+     * @param id id of the device
+     * @return the device
+     * @throws com.example.devicemanagement.exception.DeviceNotFoundException if no device has that id
+     */
+    Device getDevice(UUID id);
 }

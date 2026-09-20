@@ -67,6 +67,11 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
                 headers, status, request);
     }
 
+    @ExceptionHandler(DeviceNotFoundException.class)
+    public ResponseEntity<Object> handleDeviceNotFound(DeviceNotFoundException ex, WebRequest request) {
+        return respond(HttpStatus.NOT_FOUND, ex, ex.getMessage(), "DEVICE_NOT_FOUND", request);
+    }
+
     @ExceptionHandler(UnknownDeviceStateException.class)
     public ResponseEntity<Object> handleInvalidState(UnknownDeviceStateException ex, WebRequest request) {
         return respond(HttpStatus.BAD_REQUEST, ex, ex.getMessage(), CODE_DATA_INVALID, request);

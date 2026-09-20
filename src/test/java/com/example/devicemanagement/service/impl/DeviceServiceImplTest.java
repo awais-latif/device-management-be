@@ -1,6 +1,7 @@
 package com.example.devicemanagement.service.impl;
 
 import java.time.OffsetDateTime;
+import java.util.Optional;
 import java.util.UUID;
 
 import org.assertj.core.api.Assertions;
@@ -15,6 +16,7 @@ import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.example.devicemanagement.enums.DeviceState;
+import com.example.devicemanagement.exception.DeviceNotFoundException;
 import com.example.devicemanagement.generated.model.CreateDeviceRequest;
 import com.example.devicemanagement.generated.model.Device;
 import com.example.devicemanagement.model.DeviceEntity;
@@ -63,5 +65,37 @@ class DeviceServiceImplTest {
         Assertions.assertThat(created.getId()).isEqualTo(ID);
         Assertions.assertThat(created.getCreatedAt()).isEqualTo(CREATED_AT);
         Assertions.assertThat(created.getState()).isEqualTo(DeviceState.IN_USE);
+    }
+
+    @Test
+    void returnsDeviceById() {
+        Mockito.when(deviceRepository.findById(ID))
+                .thenReturn(Optional.of(DeviceEntity.builder()
+                        .id(ID)
+                        .name("device xyz")
+                        .brand("Mac")
+                        .state(DeviceState.AVAILABLE)
+                        .createdAt(CREATED_AT)
+                        .version(0L)
+                        .build()));
+
+        Device device = deviceService.getDevice(ID);
+
+        Assertions.assertThat(device.getId())
+                .isEqualTo(ID);
+        Assertions.assertThat(device.getName())
+                .isEqualTo("device xyz");
+        Assertions.assertThat(device.getState())
+                .isEqualTo(DeviceState.AVAILABLE);
+    }
+
+    @Test
+    void failsWhenDeviceMissing() {
+        Mockito.when(deviceRepository.findById(ID))
+                .thenReturn(Optional.empty());
+
+        Assertions.assertThatThrownBy(() -> deviceService.getDevice(ID))
+                .isInstanceOf(DeviceNotFoundException.class)
+                .hasMessage("Device not found for Id: " + ID);
     }
 }

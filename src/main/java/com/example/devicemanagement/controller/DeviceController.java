@@ -36,8 +36,7 @@ public class DeviceController implements DevicesApi {
 
     @Override
     public ResponseEntity<Device> getDevice(UUID id) {
-        //TODO implement
-        throw new NotImplementedException("Not Implemented");
+        return ResponseEntity.ok(deviceService.getDevice(id));
     }
 
     @Override

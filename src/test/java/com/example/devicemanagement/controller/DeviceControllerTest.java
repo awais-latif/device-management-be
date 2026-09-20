@@ -18,6 +18,7 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 
 import com.example.devicemanagement.enums.DeviceState;
+import com.example.devicemanagement.exception.DeviceNotFoundException;
 import com.example.devicemanagement.generated.model.CreateDeviceRequest;
 import com.example.devicemanagement.generated.model.Device;
 import com.example.devicemanagement.service.DeviceService;
@@ -57,6 +58,52 @@ class DeviceControllerTest {
                         .value("in-use"))
                 .andExpect(MockMvcResultMatchers.jsonPath("$.updatedAt")
                         .doesNotExist());
+    }
+
+    @Test
+    void getsDeviceById() throws Exception {
+        Mockito.when(deviceService.getDevice(ID))
+                .thenReturn(new Device()
+                        .id(ID)
+                        .name("device xyz")
+                        .brand("Mac")
+                        .state(DeviceState.AVAILABLE)
+                        .createdAt(OffsetDateTime.parse("2026-09-19T16:07:48.163Z")));
+
+        mockMvc.perform(MockMvcRequestBuilders.get(DEVICES + "/" + ID))
+                .andExpect(MockMvcResultMatchers.status()
+                        .isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.id")
+                        .value(ID.toString()))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.name")
+                        .value("device xyz"))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.state")
+                        .value("available"));
+    }
+
+    @Test
+    void returnsNotFoundForUnknownId() throws Exception {
+        Mockito.when(deviceService.getDevice(ID))
+                .thenThrow(new DeviceNotFoundException(ID));
+
+        mockMvc.perform(MockMvcRequestBuilders.get(DEVICES + "/" + ID))
+                .andExpect(MockMvcResultMatchers.status()
+                        .isNotFound())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.code")
+                        .value("DEVICE_NOT_FOUND"))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.message")
+                        .value("Device not found for Id: " + ID))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.path")
+                        .value(DEVICES + "/" + ID));
+    }
+
+    @Test
+    void rejectsInvalidUuid() throws Exception {
+        mockMvc.perform(MockMvcRequestBuilders.get(DEVICES + "/not-a-uuid"))
+                .andExpect(MockMvcResultMatchers.status()
+                        .isBadRequest())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.message")
+                        .value("Invalid value for parameter 'id'"));
     }
 
     @Test
