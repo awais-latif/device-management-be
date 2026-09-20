@@ -12,7 +12,9 @@ import com.example.devicemanagement.generated.api.DevicesApi;
 import com.example.devicemanagement.generated.model.CreateDeviceRequest;
 import com.example.devicemanagement.generated.model.Device;
 import com.example.devicemanagement.generated.model.DevicePage;
+import com.example.devicemanagement.generated.model.DeviceSortField;
 import com.example.devicemanagement.generated.model.PatchDeviceRequest;
+import com.example.devicemanagement.generated.model.SortDirection;
 import com.example.devicemanagement.service.DeviceService;
 
 import lombok.AllArgsConstructor;
@@ -42,9 +44,8 @@ public class DeviceController implements DevicesApi {
 
     @Override
     public ResponseEntity<DevicePage> listDevices(String brand, DeviceState state, Integer page, Integer size,
-            String sortBy, String sortDirection) {
-        //TODO implement
-        throw new NotImplementedException("Not Implemented");
+            DeviceSortField sortBy, SortDirection sortDirection) {
+        return ResponseEntity.ok(deviceService.getDevices(brand, state, page, size, sortBy, sortDirection));
     }
 
     @Override

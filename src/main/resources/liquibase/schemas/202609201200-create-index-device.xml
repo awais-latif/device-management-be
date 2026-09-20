@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="
+            http://www.liquibase.org/xml/ns/dbchangelog
+            https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="202609201200-create-index-device-created-at" author="awais">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <indexExists indexName="idx_device_created_at"/>
+            </not>
+            <tableExists tableName="device"/>
+            <columnExists tableName="device" columnName="created_at"/>
+            <columnExists tableName="device" columnName="id"/>
+        </preConditions>
+        <createIndex tableName="device" indexName="idx_device_created_at">
+            <column name="created_at" descending="true"/>
+            <column name="id"/>
+        </createIndex>
+    </changeSet>
+
+    <changeSet id="202609201200-create-index-device-brand-created-at" author="awais">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <indexExists indexName="idx_device_brand_created_at"/>
+            </not>
+            <tableExists tableName="device"/>
+            <columnExists tableName="device" columnName="brand"/>
+            <columnExists tableName="device" columnName="created_at"/>
+            <columnExists tableName="device" columnName="id"/>
+        </preConditions>
+        <createIndex tableName="device" indexName="idx_device_brand_created_at">
+            <column name="brand"/>
+            <column name="created_at" descending="true"/>
+            <column name="id"/>
+        </createIndex>
+    </changeSet>
+
+    <changeSet id="202609201200-create-index-device-state-created-at" author="awais">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <indexExists indexName="idx_device_state_created_at"/>
+            </not>
+            <tableExists tableName="device"/>
+            <columnExists tableName="device" columnName="state"/>
+            <columnExists tableName="device" columnName="created_at"/>
+            <columnExists tableName="device" columnName="id"/>
+        </preConditions>
+        <createIndex tableName="device" indexName="idx_device_state_created_at">
+            <column name="state"/>
+            <column name="created_at" descending="true"/>
+            <column name="id"/>
+        </createIndex>
+    </changeSet>
+
+    <changeSet id="202609201300-create-index-device-name" author="awais">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <indexExists indexName="idx_device_name"/>
+            </not>
+            <tableExists tableName="device"/>
+            <columnExists tableName="device" columnName="name"/>
+            <columnExists tableName="device" columnName="id"/>
+        </preConditions>
+        <createIndex tableName="device" indexName="idx_device_name">
+            <column name="name"/>
+            <column name="id"/>
+        </createIndex>
+    </changeSet>
+
+</databaseChangeLog>

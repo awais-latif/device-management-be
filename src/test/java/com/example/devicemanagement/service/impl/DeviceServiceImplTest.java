@@ -1,6 +1,7 @@
 package com.example.devicemanagement.service.impl;
 
 import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -14,12 +15,18 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 
 import com.example.devicemanagement.enums.DeviceState;
 import com.example.devicemanagement.exception.DeviceInUseException;
 import com.example.devicemanagement.exception.DeviceNotFoundException;
 import com.example.devicemanagement.generated.model.CreateDeviceRequest;
 import com.example.devicemanagement.generated.model.Device;
+import com.example.devicemanagement.generated.model.DevicePage;
+import com.example.devicemanagement.generated.model.DeviceSortField;
+import com.example.devicemanagement.generated.model.SortDirection;
 import com.example.devicemanagement.model.DeviceEntity;
 import com.example.devicemanagement.repository.DeviceEntityRepository;
 
@@ -127,7 +134,7 @@ class DeviceServiceImplTest {
                 .hasMessage("Device is in use and cannot be deleted: " + ID);
 
         Mockito.verify(deviceRepository, Mockito.never())
-                .delete(ArgumentMatchers.any());
+                .delete(ArgumentMatchers.any(DeviceEntity.class));
     }
 
     @Test
@@ -139,7 +146,7 @@ class DeviceServiceImplTest {
                 .isInstanceOf(DeviceNotFoundException.class);
 
         Mockito.verify(deviceRepository, Mockito.never())
-                .delete(ArgumentMatchers.any());
+                .delete(ArgumentMatchers.any(DeviceEntity.class));
     }
 
     @Test
@@ -150,5 +157,62 @@ class DeviceServiceImplTest {
         Assertions.assertThatThrownBy(() -> deviceService.getDevice(ID))
                 .isInstanceOf(DeviceNotFoundException.class)
                 .hasMessage("Device not found for Id: " + ID);
+    }
+
+    @Test
+    void getDevicesUsingTheRequestedPage() {
+        DeviceEntity stored = DeviceEntity.builder()
+                .id(ID)
+                .name("device xyz")
+                .brand("Mac")
+                .state(DeviceState.AVAILABLE)
+                .createdAt(CREATED_AT)
+                .version(0L)
+                .build();
+        Mockito.when(deviceRepository.findAll(ArgumentMatchers.<Specification<DeviceEntity>>any(),
+                        ArgumentMatchers.any(Pageable.class)))
+                .thenAnswer(invocation -> new PageImpl<>(List.of(stored), invocation.getArgument(1), 11));
+
+        DevicePage page = deviceService.getDevices("Mac", DeviceState.AVAILABLE, 2, 5, DeviceSortField.NAME, SortDirection.ASC);
+
+        ArgumentCaptor<Pageable> pageable = ArgumentCaptor.forClass(Pageable.class);
+        Mockito.verify(deviceRepository)
+                .findAll(ArgumentMatchers.<Specification<DeviceEntity>>any(), pageable.capture());
+
+        Assertions.assertThat(pageable.getValue()
+                        .getPageNumber())
+                .isEqualTo(2);
+        Assertions.assertThat(pageable.getValue()
+                        .getPageSize())
+                .isEqualTo(5);
+        Assertions.assertThat(pageable.getValue()
+                        .getSort()
+                        .toString())
+                .isEqualTo("name: ASC,id: ASC");
+
+        Assertions.assertThat(page.getContent())
+                .singleElement()
+                .extracting(Device::getId)
+                .isEqualTo(ID);
+        Assertions.assertThat(page.getTotalElements())
+                .isEqualTo(11L);
+    }
+
+    @Test
+    void sortsByCreatedAtDescendingByDefault() {
+        Mockito.when(deviceRepository.findAll(ArgumentMatchers.<Specification<DeviceEntity>>any(),
+                        ArgumentMatchers.any(Pageable.class)))
+                .thenAnswer(invocation -> new PageImpl<>(List.of(), invocation.getArgument(1), 0));
+
+        deviceService.getDevices(null, null, 0, 20, DeviceSortField.CREATED_AT, SortDirection.DESC);
+
+        ArgumentCaptor<Pageable> pageable = ArgumentCaptor.forClass(Pageable.class);
+        Mockito.verify(deviceRepository)
+                .findAll(ArgumentMatchers.<Specification<DeviceEntity>>any(), pageable.capture());
+
+        Assertions.assertThat(pageable.getValue()
+                        .getSort()
+                        .toString())
+                .isEqualTo("createdAt: DESC,id: ASC");
     }
 }
