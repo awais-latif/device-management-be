@@ -16,6 +16,7 @@ import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.example.devicemanagement.enums.DeviceState;
+import com.example.devicemanagement.exception.DeviceInUseException;
 import com.example.devicemanagement.exception.DeviceNotFoundException;
 import com.example.devicemanagement.generated.model.CreateDeviceRequest;
 import com.example.devicemanagement.generated.model.Device;
@@ -87,6 +88,58 @@ class DeviceServiceImplTest {
                 .isEqualTo("device xyz");
         Assertions.assertThat(device.getState())
                 .isEqualTo(DeviceState.AVAILABLE);
+    }
+
+    @Test
+    void deletesDeviceThatIsNotInUse() {
+        DeviceEntity stored = DeviceEntity.builder()
+                .id(ID)
+                .name("device xyz")
+                .brand("Mac")
+                .state(DeviceState.AVAILABLE)
+                .createdAt(CREATED_AT)
+                .version(0L)
+                .build();
+        Mockito.when(deviceRepository.findById(ID))
+                .thenReturn(Optional.of(stored));
+
+        deviceService.deleteDevice(ID);
+
+        Mockito.verify(deviceRepository)
+                .delete(stored);
+    }
+
+    @Test
+    void notAllowToDeleteDeviceInUse() {
+        DeviceEntity stored = DeviceEntity.builder()
+                .id(ID)
+                .name("device xyz")
+                .brand("Mac")
+                .state(DeviceState.IN_USE)
+                .createdAt(CREATED_AT)
+                .version(0L)
+                .build();
+        Mockito.when(deviceRepository.findById(ID))
+                .thenReturn(Optional.of(stored));
+
+        Assertions.assertThatThrownBy(() -> deviceService.deleteDevice(ID))
+                .isInstanceOf(DeviceInUseException.class)
+                .hasMessage("Device is in use and cannot be deleted: " + ID);
+
+        Mockito.verify(deviceRepository, Mockito.never())
+                .delete(ArgumentMatchers.any());
+    }
+
+    @Test
+    void failsToDeleteMissingDevice() {
+        Mockito.when(deviceRepository.findById(ID))
+                .thenReturn(Optional.empty());
+
+        Assertions.assertThatThrownBy(() -> deviceService.deleteDevice(ID))
+                .isInstanceOf(DeviceNotFoundException.class);
+
+        Mockito.verify(deviceRepository, Mockito.never())
+                .delete(ArgumentMatchers.any());
     }
 
     @Test

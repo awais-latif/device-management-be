@@ -18,6 +18,7 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 
 import com.example.devicemanagement.enums.DeviceState;
+import com.example.devicemanagement.exception.DeviceInUseException;
 import com.example.devicemanagement.exception.DeviceNotFoundException;
 import com.example.devicemanagement.generated.model.CreateDeviceRequest;
 import com.example.devicemanagement.generated.model.Device;
@@ -95,6 +96,46 @@ class DeviceControllerTest {
                         .value("Device not found for Id: " + ID))
                 .andExpect(MockMvcResultMatchers.jsonPath("$.path")
                         .value(DEVICES + "/" + ID));
+    }
+
+    @Test
+    void deletesDevice() throws Exception {
+        mockMvc.perform(MockMvcRequestBuilders.delete(DEVICES + "/" + ID))
+                .andExpect(MockMvcResultMatchers.status()
+                        .isNoContent())
+                .andExpect(MockMvcResultMatchers.content()
+                        .string(""));
+
+        Mockito.verify(deviceService)
+                .deleteDevice(ID);
+    }
+
+    @Test
+    void notAllowToDeleteDeviceInUse() throws Exception {
+        Mockito.doThrow(new DeviceInUseException(ID))
+                .when(deviceService)
+                .deleteDevice(ID);
+
+        mockMvc.perform(MockMvcRequestBuilders.delete(DEVICES + "/" + ID))
+                .andExpect(MockMvcResultMatchers.status()
+                        .isConflict())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.code")
+                        .value("DEVICE_IN_USE"))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.message")
+                        .value("Device is in use and cannot be deleted: " + ID));
+    }
+
+    @Test
+    void returnsNotFoundWhenDeletingUnknownId() throws Exception {
+        Mockito.doThrow(new DeviceNotFoundException(ID))
+                .when(deviceService)
+                .deleteDevice(ID);
+
+        mockMvc.perform(MockMvcRequestBuilders.delete(DEVICES + "/" + ID))
+                .andExpect(MockMvcResultMatchers.status()
+                        .isNotFound())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.code")
+                        .value("DEVICE_NOT_FOUND"));
     }
 
     @Test

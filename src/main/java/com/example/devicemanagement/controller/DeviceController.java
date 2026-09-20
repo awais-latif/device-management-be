@@ -30,8 +30,9 @@ public class DeviceController implements DevicesApi {
 
     @Override
     public ResponseEntity<Void> deleteDevice(UUID id) {
-        //TODO implement
-        throw new NotImplementedException("Not Implemented");
+        deviceService.deleteDevice(id);
+        return ResponseEntity.noContent()
+                .build();
     }
 
     @Override

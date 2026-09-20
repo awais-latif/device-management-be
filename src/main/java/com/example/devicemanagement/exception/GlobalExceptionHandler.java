@@ -72,6 +72,11 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         return respond(HttpStatus.NOT_FOUND, ex, ex.getMessage(), "DEVICE_NOT_FOUND", request);
     }
 
+    @ExceptionHandler(DeviceInUseException.class)
+    public ResponseEntity<Object> handleDeviceInUse(DeviceInUseException ex, WebRequest request) {
+        return respond(HttpStatus.CONFLICT, ex, ex.getMessage(), "DEVICE_IN_USE", request);
+    }
+
     @ExceptionHandler(UnknownDeviceStateException.class)
     public ResponseEntity<Object> handleInvalidState(UnknownDeviceStateException ex, WebRequest request) {
         return respond(HttpStatus.BAD_REQUEST, ex, ex.getMessage(), CODE_DATA_INVALID, request);
@@ -82,7 +87,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
             ObjectOptimisticLockingFailureException ex, WebRequest request) {
 
         return respond(HttpStatus.CONFLICT, ex,
-                "The device was modified by another request. Re-read it and retry.",
+                "The device was modified by another request. Please refresh and try again.",
                 "OPTIMISTIC_LOCK_CONFLICT", request);
     }
 
