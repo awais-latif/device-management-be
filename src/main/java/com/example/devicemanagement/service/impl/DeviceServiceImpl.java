@@ -70,15 +70,18 @@ public class DeviceServiceImpl implements DeviceService {
         DeviceEntity device = deviceRepository.findById(id)
                 .orElseThrow(() -> new DeviceNotFoundException(id));
 
+        String name = trimmed(request.getName());
+        String brand = trimmed(request.getBrand());
+
         if (DeviceState.IN_USE == device.getState()) {
-            validatedNameAndBrandChanged(device, request);
+            validatedNameAndBrandChanged(device, name, brand);
         }
 
-        if (request.getName() != null) {
-            device.setName(request.getName());
+        if (name != null) {
+            device.setName(name);
         }
-        if (request.getBrand() != null) {
-            device.setBrand(request.getBrand());
+        if (brand != null) {
+            device.setBrand(brand);
         }
         if (request.getState() != null) {
             device.setState(request.getState());
@@ -87,15 +90,17 @@ public class DeviceServiceImpl implements DeviceService {
         return DeviceMapper.toDevice(deviceRepository.saveAndFlush(device));
     }
 
-    private void validatedNameAndBrandChanged(DeviceEntity device, PatchDeviceRequest request) {
-        boolean nameChanged = request.getName() != null && !request.getName()
-                .equals(device.getName());
-        boolean branchChanged = request.getBrand() != null && !request.getBrand()
-                .equals(device.getBrand());
+    private void validatedNameAndBrandChanged(DeviceEntity device, String name, String brand) {
+        boolean nameChanged = name != null && !name.equals(device.getName());
+        boolean brandChanged = brand != null && !brand.equals(device.getBrand());
 
-        if (nameChanged || branchChanged) {
+        if (nameChanged || brandChanged) {
             throw new DeviceInUseException("Device is in use, name and brand cannot be changed");
         }
+    }
+
+    private String trimmed(String value) {
+        return value != null ? value.trim() : null;
     }
 
     @Override

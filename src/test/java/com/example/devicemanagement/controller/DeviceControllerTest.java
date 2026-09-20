@@ -449,6 +449,66 @@ class DeviceControllerTest {
     }
 
     @Test
+    void rejectsWhitespaceNameOnCreate() throws Exception {
+        mockMvc.perform(MockMvcRequestBuilders.post(DEVICES)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"name":"   ","brand":"Mac"}"""))
+                .andExpect(MockMvcResultMatchers.status()
+                        .isBadRequest())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.code")
+                        .value("DATA_INVALID"))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.validationErrors[0].field")
+                        .value("name"))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.validationErrors[0].message")
+                        .value("must contain at least one non whitespace character"));
+
+        Mockito.verifyNoInteractions(deviceService);
+    }
+
+    @Test
+    void rejectsWhitespaceBrandOnCreate() throws Exception {
+        mockMvc.perform(MockMvcRequestBuilders.post(DEVICES)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"name":"device xyz","brand":"   "}"""))
+                .andExpect(MockMvcResultMatchers.status()
+                        .isBadRequest())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.validationErrors[0].field")
+                        .value("brand"));
+
+        Mockito.verifyNoInteractions(deviceService);
+    }
+
+    @Test
+    void rejectsWhitespaceNameOnUpdate() throws Exception {
+        mockMvc.perform(MockMvcRequestBuilders.patch(DEVICES + "/" + ID)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"name":"   "}"""))
+                .andExpect(MockMvcResultMatchers.status()
+                        .isBadRequest())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.validationErrors[0].field")
+                        .value("name"));
+
+        Mockito.verifyNoInteractions(deviceService);
+    }
+
+    @Test
+    void rejectsWhitespaceBrandOnUpdate() throws Exception {
+        mockMvc.perform(MockMvcRequestBuilders.patch(DEVICES + "/" + ID)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"brand":"   "}"""))
+                .andExpect(MockMvcResultMatchers.status()
+                        .isBadRequest())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.validationErrors[0].field")
+                        .value("brand"));
+
+        Mockito.verifyNoInteractions(deviceService);
+    }
+
+    @Test
     void rejectsBlankNameOnUpdate() throws Exception {
         mockMvc.perform(MockMvcRequestBuilders.patch(DEVICES + "/" + ID)
                         .contentType(MediaType.APPLICATION_JSON)

@@ -151,7 +151,8 @@ The requirements left a few things open. I made assumptions as defined below.
 Device fields
 
 * Name and brand are always required. Any characters are allowed for now, 1 to
-  255 characters.
+  255 characters, but at least one of them must be a non whitespace character.
+* Name and brand are trimmed before they are saved.
 * Two devices can have the same name and brand. Nothing in the requirements
   suggested they need to be unique.
 * State defaults to available when the create request does not provide state.

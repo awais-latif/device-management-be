@@ -102,6 +102,90 @@ class DeviceApiIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void trimsNameAndBrandOnCreate() throws Exception {
+        mockMvc.perform(MockMvcRequestBuilders.post(DEVICES)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"name":"  device xyz  ","brand":"  Mac  "}"""))
+                .andExpect(MockMvcResultMatchers.status()
+                        .isCreated())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.name")
+                        .value("device xyz"))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.brand")
+                        .value("Mac"));
+
+        Assertions.assertThat(deviceRepository.findAll())
+                .singleElement()
+                .satisfies(saved -> {
+                    Assertions.assertThat(saved.getName())
+                            .isEqualTo("device xyz");
+                    Assertions.assertThat(saved.getBrand())
+                            .isEqualTo("Mac");
+                });
+    }
+
+    @Test
+    void trimmedBrandIsFoundByExactBrandFilter() throws Exception {
+        createDevice("""
+                {"name":"device xyz","brand":"  Mac  "}""");
+
+        mockMvc.perform(MockMvcRequestBuilders.get(DEVICES)
+                        .param("brand", "Mac"))
+                .andExpect(MockMvcResultMatchers.status()
+                        .isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.totalElements")
+                        .value(1))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.content[0].brand")
+                        .value("Mac"));
+    }
+
+    @Test
+    void trimsNameOnPatch() throws Exception {
+        String id = createDevice("""
+                {"name":"device xyz","brand":"Mac","state":"available"}""");
+
+        mockMvc.perform(MockMvcRequestBuilders.patch(DEVICES + "/" + id)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"name":"  device abc  "}"""))
+                .andExpect(MockMvcResultMatchers.status()
+                        .isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.name")
+                        .value("device abc"));
+
+        Assertions.assertThat(deviceRepository.findAll())
+                .singleElement()
+                .satisfies(saved -> Assertions.assertThat(saved.getName())
+                        .isEqualTo("device abc"));
+    }
+
+    @Test
+    void rejectWhitespaceNameinCreate() throws Exception {
+        mockMvc.perform(MockMvcRequestBuilders.post(DEVICES)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"name":"   ","brand":"Mac"}"""))
+                .andExpect(MockMvcResultMatchers.status()
+                        .isBadRequest());
+
+        Assertions.assertThat(deviceRepository.count())
+                .isZero();
+    }
+
+    @Test
+    void rejectWhitespaceNameOnUpdate() throws Exception {
+        String id = createDevice("""
+                {"name":"device xyz","brand":"Mac","state":"available"}""");
+
+        mockMvc.perform(MockMvcRequestBuilders.patch(DEVICES + "/" + id)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"name":"   "}"""))
+                .andExpect(MockMvcResultMatchers.status()
+                        .isBadRequest());
+    }
+
+    @Test
     void getDeviceById() throws Exception {
         String created = mockMvc.perform(MockMvcRequestBuilders.post(DEVICES)
                         .contentType(MediaType.APPLICATION_JSON)

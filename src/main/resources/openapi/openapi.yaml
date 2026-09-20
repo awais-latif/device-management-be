@@ -230,12 +230,16 @@ components:
           example: device xyz
           minLength: 1
           maxLength: 255
+          pattern: '^(?!\s*$)[\s\S]+$'
+          x-pattern-message: must contain at least one non whitespace character
         brand:
           type: string
           description: Brand of device
           example: Mac
           minLength: 1
           maxLength: 255
+          pattern: '^(?!\s*$)[\s\S]+$'
+          x-pattern-message: must contain at least one non whitespace character
         state:
           allOf:
             - $ref: '#/components/schemas/DeviceState'
@@ -278,11 +282,15 @@ components:
           description: Name of device
           minLength: 1
           maxLength: 255
+          pattern: '^(?!\s*$)[\s\S]+$'
+          x-pattern-message: must contain at least one non whitespace character
           example: device xyz
         brand:
           type: string
           minLength: 1
           maxLength: 255
+          pattern: '^(?!\s*$)[\s\S]+$'
+          x-pattern-message: must contain at least one non whitespace character
           description: Brand of device
           example: Mac
         state:

@@ -309,6 +309,24 @@ class DeviceServiceImplTest {
     }
 
     @Test
+    void trimsNameAndBrandOnUpdate() {
+        DeviceEntity stored = storedDevice(DeviceState.AVAILABLE);
+        Mockito.when(deviceRepository.findById(ID))
+                .thenReturn(Optional.of(stored));
+        Mockito.when(deviceRepository.saveAndFlush(stored))
+                .thenReturn(stored);
+
+        deviceService.updateDevice(ID, new PatchDeviceRequest()
+                .name("  device abc  ")
+                .brand("  Dell  "));
+
+        Assertions.assertThat(stored.getName())
+                .isEqualTo("device abc");
+        Assertions.assertThat(stored.getBrand())
+                .isEqualTo("Dell");
+    }
+
+    @Test
     void failsToUpdateNotExitingDevice() {
         Mockito.when(deviceRepository.findById(ID))
                 .thenReturn(Optional.empty());
