@@ -1,14 +1,18 @@
 package com.example.devicemanagement.mapper;
 
 import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.UUID;
 
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 
 import com.example.devicemanagement.enums.DeviceState;
 import com.example.devicemanagement.generated.model.CreateDeviceRequest;
 import com.example.devicemanagement.generated.model.Device;
+import com.example.devicemanagement.generated.model.DevicePage;
 import com.example.devicemanagement.model.DeviceEntity;
 
 class DeviceMapperTest {
@@ -74,5 +78,53 @@ class DeviceMapperTest {
                 .isNull();
         Assertions.assertThat(DeviceMapper.toDeviceEntity(null))
                 .isNull();
+    }
+
+    @Test
+    void mapsPageContentAndMetadata() {
+        PageImpl<DeviceEntity> page = new PageImpl<>(List.of(DeviceEntity.builder()
+                .id(UUID.randomUUID())
+                .name("first")
+                .brand("Mac")
+                .state(DeviceState.AVAILABLE)
+                .createdAt(CREATED_AT)
+                .version(0L)
+                .build(), DeviceEntity.builder()
+                .id(UUID.randomUUID())
+                .name("second")
+                .brand("Mac")
+                .state(DeviceState.AVAILABLE)
+                .createdAt(CREATED_AT)
+                .version(0L)
+                .build()),
+                PageRequest.of(1, 2), 5);
+
+        DevicePage mapped = DeviceMapper.toDevicePage(page);
+
+        Assertions.assertThat(mapped.getContent())
+                .extracting(Device::getName)
+                .containsExactly("first", "second");
+        Assertions.assertThat(mapped.getPageNumber())
+                .isEqualTo(1);
+        Assertions.assertThat(mapped.getPageSize())
+                .isEqualTo(2);
+        Assertions.assertThat(mapped.getTotalElements())
+                .isEqualTo(5L);
+        Assertions.assertThat(mapped.getTotalPages())
+                .isEqualTo(3);
+    }
+
+    @Test
+    void mapsEmptyPage() {
+        PageImpl<DeviceEntity> page = new PageImpl<>(List.of(), PageRequest.of(0, 20), 0);
+
+        DevicePage mapped = DeviceMapper.toDevicePage(page);
+
+        Assertions.assertThat(mapped.getContent())
+                .isEmpty();
+        Assertions.assertThat(mapped.getTotalElements())
+                .isZero();
+        Assertions.assertThat(mapped.getTotalPages())
+                .isZero();
     }
 }

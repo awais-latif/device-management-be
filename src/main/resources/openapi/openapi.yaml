@@ -74,23 +74,13 @@ paths:
           required: false
           description: Sort by field
           schema:
-            type: string
-            enum:
-              - createdAt
-              - name
-              - brand
-              - state
-            default: createdAt
+            $ref: '#/components/schemas/DeviceSortField'
         - name: sortDirection
           in: query
           required: false
           description: Order by either desc or asc
           schema:
-            type: string
-            enum:
-              - asc
-              - desc
-            default: desc
+            $ref: '#/components/schemas/SortDirection'
 
       responses:
         '200':
@@ -166,6 +156,26 @@ paths:
 
 components:
   schemas:
+    DeviceSortField:
+      type: string
+      description: Sort field
+      example: createdAt
+      default: createdAt
+      enum:
+        - createdAt
+        - name
+        - brand
+        - state
+
+    SortDirection:
+      type: string
+      description: Sort order
+      example: desc
+      default: desc
+      enum:
+        - asc
+        - desc
+
     DeviceState:
       type: string
       description: State of a device.

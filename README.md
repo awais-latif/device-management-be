@@ -9,12 +9,9 @@ you from changing things out from under whoever is using it.
 
 The service enforces these rules:
 
-* The server sets `createdAt` when it creates the device. It can't be set or
-  changed through the API.
-* While a device is `in-use`, its name and brand are frozen.
-* An `in-use` device can't be deleted. It has to leave that state first.
-* List endpoints are paginated to avoid unbounded responses.
-* The brand and state filters can be combined.
+* `createdAt` can not be changed through the API.
+* While a device is `in-use`, its name and brand can not change.
+* An `in-use` device can not be deleted. It has to leave that state first.
 
 A device is `available`, `in-use`, or `inactive`.
 
@@ -147,15 +144,48 @@ small maximum pool size, which is appropriate for a service of this size.
 These values can be changed through configuration if the deployment requires
 it.
 
+## Assumptions
+
+The requirements left a few things open. I made assumption as defined below.
+
+Device fields
+
+* Name and brand are always required. Any characters are allowed for now, 1 to
+  255 characters.
+* Two devices can have the same name and brand. Nothing in the requirements
+  suggested they need to be unique.
+* State defaults to available when the create request does not provide state.
+* The server owns id and createdAt. Client can not set them.
+* `updatedAt` is not in the required domain, I added it because tracing last update.
+
+Fetching
+
+* Filtering by brand and/or state are added in single GET Api.
+* Brand matching is exact and case sensitive.
+* Get all is paginated with page metadata. The requirements didn't ask for paging, but an endpoint that returns the
+  whole table is not something I would ship.
+* Page size is between 1 and 100, default 20.
+* Default sort is createdAt desc, so the newest device comes first. Sorting is allowed on createdAt, name, brand and
+  state. Id is added as a tiebreaker to have consistance order.
+* If filter found nothing, it will be empty list response.
+
+Changing devices
+
+* Delete removes the row. There is no soft delete or archive (audit or history).
+
 ## Out of scope / future improvements
 
-* **Authentication and authorization.** The API is currently open. A
-  production deployment would typically put OAuth2/JWT authentication and
-  authorization in front of the service, backed by an external identity
-  provider.
-* **Distributed tracing and centralized logging.** Application logs currently
-  go to stdout. A deployed environment would typically add centralized log
-  collection and distributed tracing.
-* **State transition rules.** Any supported state can currently transition to
-  any other state. The requirements don't define a device lifecycle, so no
-  additional transition rules were introduced.
+* Authentication and authorization. The API is open right now. In a real
+  deployment it would sit behind OAuth2 or JWT with an identity provider in
+  front of it.
+* Centralized logging and tracing. Logs and the access log both go to stdout,
+  which is the right thing inside a container, but there is nothing collecting
+  them and no trace id to follow a request across services.
+* State transition rules. Any state can move to any other state today. The
+  requirements do not describe a device lifecycle, so I did not invent one.
+* Audit or history. There is no record of what changed. This is also what a soft
+  delete would need.
+* Rate limiting. Nothing stops a client from hammering the list endpoint.
+* Brand as its own thing. It is a free text column, so two spellings of the same
+  brand are two brands. A lookup table would fix that, and would make the brand
+  filter behave the way people expect.

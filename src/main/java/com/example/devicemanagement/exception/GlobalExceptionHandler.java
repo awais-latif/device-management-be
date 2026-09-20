@@ -1,6 +1,7 @@
 package com.example.devicemanagement.exception;
 
 import java.time.OffsetDateTime;
+import java.util.Comparator;
 import java.util.List;
 
 import org.springframework.beans.TypeMismatchException;
@@ -22,6 +23,8 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExcep
 import com.example.devicemanagement.generated.model.ErrorResponse;
 import com.example.devicemanagement.generated.model.ValidationError;
 
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -75,6 +78,26 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler(DeviceInUseException.class)
     public ResponseEntity<Object> handleDeviceInUse(DeviceInUseException ex, WebRequest request) {
         return respond(HttpStatus.CONFLICT, ex, ex.getMessage(), "DEVICE_IN_USE", request);
+    }
+
+    @ExceptionHandler(ConstraintViolationException.class)
+    public ResponseEntity<Object> handleConstraintViolation(
+            ConstraintViolationException ex, WebRequest request) {
+
+        List<ValidationError> violations = ex.getConstraintViolations()
+                .stream()
+                .map(this::toValidationError)
+                .sorted(Comparator.comparing(ValidationError::getField))
+                .toList();
+
+        return handleExceptionInternal(ex,
+                errorBody(HttpStatus.BAD_REQUEST, "Validation failed", CODE_DATA_INVALID, violations, request),
+                new HttpHeaders(), HttpStatus.BAD_REQUEST, request);
+    }
+
+    @ExceptionHandler(InvalidSortException.class)
+    public ResponseEntity<Object> handleInvalidSort(InvalidSortException ex, WebRequest request) {
+        return respond(HttpStatus.BAD_REQUEST, ex, ex.getMessage(), CODE_DATA_INVALID, request);
     }
 
     @ExceptionHandler(UnknownDeviceStateException.class)
@@ -159,7 +182,8 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     }
 
     private String typeMismatchMessage(TypeMismatchException ex) {
-        if (ex.getMostSpecificCause() instanceof UnknownDeviceStateException cause) {
+        Throwable cause = ex.getMostSpecificCause();
+        if (cause instanceof UnknownDeviceStateException || cause instanceof InvalidSortException) {
             return cause.getMessage();
         }
         return ex instanceof MethodArgumentTypeMismatchException mismatch
@@ -183,5 +207,12 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     private ValidationError toValidationError(FieldError fieldError) {
         return new ValidationError().field(fieldError.getField())
                 .message(fieldError.getDefaultMessage());
+    }
+
+    private ValidationError toValidationError(ConstraintViolation<?> violation) {
+        String path = violation.getPropertyPath()
+                .toString();
+        return new ValidationError().field(path.substring(path.lastIndexOf('.') + 1))
+                .message(violation.getMessage());
     }
 }

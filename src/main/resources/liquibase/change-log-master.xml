@@ -6,5 +6,6 @@
                             http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
 
     <include file="liquibase/schemas/202609191800-create-device-table.xml"/>
+    <include file="liquibase/schemas/202609201200-create-index-device.xml"/>
 
 </databaseChangeLog>

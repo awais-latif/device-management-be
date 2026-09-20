@@ -178,6 +178,157 @@ class DeviceApiIntegrationTest extends AbstractIntegrationTest {
                         .value("DEVICE_NOT_FOUND"));
     }
 
+    @Test
+    void getDevicesNewestFirstByDefault() throws Exception {
+        createDevice("""
+                {"name":"first","brand":"Mac","state":"available"}""");
+        createDevice("""
+                {"name":"second","brand":"Dell","state":"in-use"}""");
+        createDevice("""
+                {"name":"third","brand":"Mac","state":"inactive"}""");
+
+        mockMvc.perform(MockMvcRequestBuilders.get(DEVICES))
+                .andExpect(MockMvcResultMatchers.status()
+                        .isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.content.length()")
+                        .value(3))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.content[0].name")
+                        .value("third"))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.totalElements")
+                        .value(3))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.totalPages")
+                        .value(1))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.pageNumber")
+                        .value(0))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.pageSize")
+                        .value(20));
+    }
+
+    @Test
+    void filtersByBrand() throws Exception {
+        createDevice("""
+                {"name":"first","brand":"Mac","state":"available"}""");
+        createDevice("""
+                {"name":"second","brand":"Dell","state":"in-use"}""");
+
+        mockMvc.perform(MockMvcRequestBuilders.get(DEVICES)
+                        .param("brand", "Mac"))
+                .andExpect(MockMvcResultMatchers.status()
+                        .isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.content.length()")
+                        .value(1))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.totalElements")
+                        .value(1))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.content[0].brand")
+                        .value("Mac"));
+    }
+
+    @Test
+    void filtersByState() throws Exception {
+        createDevice("""
+                {"name":"first","brand":"Mac","state":"available"}""");
+        createDevice("""
+                {"name":"second","brand":"Dell","state":"in-use"}""");
+
+        mockMvc.perform(MockMvcRequestBuilders.get(DEVICES)
+                        .param("state", "in-use"))
+                .andExpect(MockMvcResultMatchers.status()
+                        .isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.content.length()")
+                        .value(1))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.totalElements")
+                        .value(1))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.content[0].name")
+                        .value("second"))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.content[0].brand")
+                        .value("Dell"));
+    }
+
+    @Test
+    void filtersByBrandAndState() throws Exception {
+        createDevice("""
+                {"name":"first","brand":"Mac","state":"available"}""");
+        createDevice("""
+                {"name":"second","brand":"Mac","state":"in-use"}""");
+        createDevice("""
+                {"name":"third","brand":"Dell","state":"in-use"}""");
+
+        mockMvc.perform(MockMvcRequestBuilders.get(DEVICES)
+                        .param("brand", "Mac")
+                        .param("state", "in-use"))
+                .andExpect(MockMvcResultMatchers.status()
+                        .isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.totalElements")
+                        .value(1))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.content[0].name")
+                        .value("second"));
+    }
+
+    @Test
+    void checkSecondPage() throws Exception {
+        for (int i = 0; i < 5; i++) {
+            createDevice("""
+                    {"name":"device %d","brand":"Mac","state":"available"}""".formatted(i));
+        }
+
+        mockMvc.perform(MockMvcRequestBuilders.get(DEVICES)
+                        .param("page", "1")
+                        .param("size", "2"))
+                .andExpect(MockMvcResultMatchers.status()
+                        .isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.content.length()")
+                        .value(2))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.content[0].name")
+                        .value("device 2"))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.pageNumber")
+                        .value(1))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.pageSize")
+                        .value(2))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.totalElements")
+                        .value(5))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.totalPages")
+                        .value(3));
+    }
+
+    @Test
+    void sortsByNameAsc() throws Exception {
+        createDevice("""
+                {"name":"iphone","brand":"Mac","state":"available"}""");
+        createDevice("""
+                {"name":"dou phone","brand":"Mac","state":"available"}""");
+        createDevice("""
+                {"name":"macbook","brand":"Mac","state":"available"}""");
+
+        mockMvc.perform(MockMvcRequestBuilders.get(DEVICES)
+                        .param("sortBy", "name")
+                        .param("sortDirection", "asc"))
+                .andExpect(MockMvcResultMatchers.status()
+                        .isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.content[0].name")
+                        .value("dou phone"))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.content[1].name")
+                        .value("iphone"))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.content[2].name")
+                        .value("macbook"));
+    }
+
+    @Test
+    void returnsEmptyPageWhenNothingMatches() throws Exception {
+        createDevice("""
+                {"name":"first","brand":"Mac","state":"available"}""");
+
+        mockMvc.perform(MockMvcRequestBuilders.get(DEVICES)
+                        .param("brand", "xyz"))
+                .andExpect(MockMvcResultMatchers.status()
+                        .isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.content.length()")
+                        .value(0))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.totalElements")
+                        .value(0))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.totalPages")
+                        .value(0));
+    }
+
     private String createDevice(String payload) throws Exception {
         String created = mockMvc.perform(MockMvcRequestBuilders.post(DEVICES)
                         .contentType(MediaType.APPLICATION_JSON)

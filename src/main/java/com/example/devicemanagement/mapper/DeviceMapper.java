@@ -1,7 +1,10 @@
 package com.example.devicemanagement.mapper;
 
+import org.springframework.data.domain.Page;
+
 import com.example.devicemanagement.generated.model.CreateDeviceRequest;
 import com.example.devicemanagement.generated.model.Device;
+import com.example.devicemanagement.generated.model.DevicePage;
 import com.example.devicemanagement.model.DeviceEntity;
 
 public class DeviceMapper {
@@ -41,5 +44,23 @@ public class DeviceMapper {
                 .brand(deviceRequest.getBrand())
                 .state(deviceRequest.getState())
                 .build();
+    }
+
+    /**
+     * Convert Paged entity to DevicePage response.
+     *
+     * @param page page having entities
+     * @return page response having content and page metadata
+     */
+    public static DevicePage toDevicePage(Page<DeviceEntity> page) {
+        return new DevicePage()
+                .content(page.getContent()
+                        .stream()
+                        .map(DeviceMapper::toDevice)
+                        .toList())
+                .pageNumber(page.getNumber())
+                .pageSize(page.getSize())
+                .totalElements(page.getTotalElements())
+                .totalPages(page.getTotalPages());
     }
 }

@@ -1,6 +1,8 @@
 package com.example.devicemanagement.controller;
 
 import java.time.OffsetDateTime;
+import java.util.Collections;
+import java.util.List;
 import java.util.UUID;
 
 import org.hamcrest.Matchers;
@@ -22,6 +24,9 @@ import com.example.devicemanagement.exception.DeviceInUseException;
 import com.example.devicemanagement.exception.DeviceNotFoundException;
 import com.example.devicemanagement.generated.model.CreateDeviceRequest;
 import com.example.devicemanagement.generated.model.Device;
+import com.example.devicemanagement.generated.model.DevicePage;
+import com.example.devicemanagement.generated.model.DeviceSortField;
+import com.example.devicemanagement.generated.model.SortDirection;
 import com.example.devicemanagement.service.DeviceService;
 
 @WebMvcTest(DeviceController.class)
@@ -96,6 +101,132 @@ class DeviceControllerTest {
                         .value("Device not found for Id: " + ID))
                 .andExpect(MockMvcResultMatchers.jsonPath("$.path")
                         .value(DEVICES + "/" + ID));
+    }
+
+    @Test
+    void getDevicesWithPageMetadata() throws Exception {
+        Mockito.when(deviceService.getDevices(ArgumentMatchers.any(), ArgumentMatchers.any(),
+                        ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any(),
+                        ArgumentMatchers.any()))
+                .thenReturn(new DevicePage()
+                        .content(List.of(new Device()
+                                .id(ID)
+                                .name("device xyz")
+                                .brand("Mac")
+                                .state(DeviceState.AVAILABLE)
+                                .createdAt(OffsetDateTime.parse("2026-09-19T16:07:48.163Z"))))
+                        .pageNumber(0)
+                        .pageSize(20)
+                        .totalElements(1L)
+                        .totalPages(1));
+
+        mockMvc.perform(MockMvcRequestBuilders.get(DEVICES))
+                .andExpect(MockMvcResultMatchers.status()
+                        .isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.content[0].id")
+                        .value(ID.toString()))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.pageNumber")
+                        .value(0))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.pageSize")
+                        .value(20))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.totalElements")
+                        .value(1))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.totalPages")
+                        .value(1));
+    }
+
+    @Test
+    void appliesDefaultsWhenNoPagingGiven() throws Exception {
+        Mockito.when(deviceService.getDevices(ArgumentMatchers.any(), ArgumentMatchers.any(),
+                        ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any(),
+                        ArgumentMatchers.any()))
+                .thenReturn(new DevicePage().content(Collections.emptyList()));
+
+        mockMvc.perform(MockMvcRequestBuilders.get(DEVICES))
+                .andExpect(MockMvcResultMatchers.status()
+                        .isOk());
+
+        Mockito.verify(deviceService)
+                .getDevices(null, null, 0, 20, DeviceSortField.CREATED_AT, SortDirection.DESC);
+    }
+
+    @Test
+    void getDeviceWithParameters() throws Exception {
+        Mockito.when(deviceService.getDevices(ArgumentMatchers.any(), ArgumentMatchers.any(),
+                        ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any(),
+                        ArgumentMatchers.any()))
+                .thenReturn(new DevicePage().content(List.of()));
+
+        mockMvc.perform(MockMvcRequestBuilders.get(DEVICES)
+                        .param("brand", "Mac")
+                        .param("state", "in-use")
+                        .param("page", "2")
+                        .param("size", "5")
+                        .param("sortBy", "name")
+                        .param("sortDirection", "asc"))
+                .andExpect(MockMvcResultMatchers.status()
+                        .isOk());
+
+        Mockito.verify(deviceService)
+                .getDevices("Mac", DeviceState.IN_USE, 2, 5, DeviceSortField.NAME, SortDirection.ASC);
+    }
+
+    @Test
+    void rejectsUnknownSort() throws Exception {
+        mockMvc.perform(MockMvcRequestBuilders.get(DEVICES)
+                        .param("sortBy", "unknown"))
+                .andExpect(MockMvcResultMatchers.status()
+                        .isBadRequest())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.code")
+                        .value("DATA_INVALID"))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.message")
+                        .value("Unknown sort field: unknown. Allowed: createdAt, name, brand, state"));
+
+        Mockito.verifyNoInteractions(deviceService);
+    }
+
+    @Test
+    void rejectsUnknownSortDirection() throws Exception {
+        mockMvc.perform(MockMvcRequestBuilders.get(DEVICES)
+                        .param("sortDirection", "unknown"))
+                .andExpect(MockMvcResultMatchers.status()
+                        .isBadRequest())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.message")
+                        .value("Unknown sort direction: unknown. Allowed: asc, desc"));
+
+        Mockito.verifyNoInteractions(deviceService);
+    }
+
+    @Test
+    void rejectsUnknownStateFilter() throws Exception {
+        mockMvc.perform(MockMvcRequestBuilders.get(DEVICES)
+                        .param("state", "unknown"))
+                .andExpect(MockMvcResultMatchers.status()
+                        .isBadRequest())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.message")
+                        .value("Unknown state value: unknown. Allowed: available, in-use, inactive"));
+    }
+
+    @Test
+    void rejectsPageSizeWhenNotInAllowedRange() throws Exception {
+        mockMvc.perform(MockMvcRequestBuilders.get(DEVICES)
+                        .param("size", "0"))
+                .andExpect(MockMvcResultMatchers.status()
+                        .isBadRequest())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.code")
+                        .value("DATA_INVALID"))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.validationErrors[0].field")
+                        .value("size"));
+
+        mockMvc.perform(MockMvcRequestBuilders.get(DEVICES)
+                        .param("size", "101"))
+                .andExpect(MockMvcResultMatchers.status()
+                        .isBadRequest());
+
+        mockMvc.perform(MockMvcRequestBuilders.get(DEVICES)
+                        .param("page", "-1"))
+                .andExpect(MockMvcResultMatchers.status()
+                        .isBadRequest());
     }
 
     @Test
