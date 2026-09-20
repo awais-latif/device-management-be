@@ -332,7 +332,10 @@ components:
           example: 404
         code:
           type: string
-          description: Error code for operation failure
+          description: >
+            Error code for operation failure. Domain codes are DATA_INVALID,
+            DEVICE_NOT_FOUND, DEVICE_IN_USE and OPTIMISTIC_LOCK_CONFLICT. 
+            Other failures fall back to the HTTP status name, for example METHOD_NOT_ALLOWED.
           example: DEVICE_NOT_FOUND
         message:
           type: string
@@ -365,6 +368,15 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
+          example:
+            timestamp: 2026-09-19T16:07:48.163Z
+            status: 400
+            code: DATA_INVALID
+            message: Validation failed
+            path: /api/v1/devices
+            validationErrors:
+              - field: name
+                message: must contain at least one non whitespace character
 
     NotFound:
       description: Device not found
@@ -372,6 +384,12 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
+          example:
+            timestamp: 2026-09-19T16:07:48.163Z
+            status: 404
+            code: DEVICE_NOT_FOUND
+            message: 'Device not found for Id: 3f2a1c9e-1b2c-4d5e-8f90-1a2b3c4d5e6f'
+            path: /api/v1/devices/3f2a1c9e-1b2c-4d5e-8f90-1a2b3c4d5e6f
 
     Conflict:
       description: Device cannot be modified because of its current state.
@@ -379,3 +397,9 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
+          example:
+            timestamp: 2026-09-19T16:07:48.163Z
+            status: 409
+            code: DEVICE_IN_USE
+            message: Device is in use, name and brand cannot be changed
+            path: /api/v1/devices/3f2a1c9e-1b2c-4d5e-8f90-1a2b3c4d5e6f

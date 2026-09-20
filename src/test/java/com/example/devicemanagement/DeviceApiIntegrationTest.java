@@ -11,6 +11,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
@@ -562,6 +563,26 @@ class DeviceApiIntegrationTest extends AbstractIntegrationTest {
                     Assertions.assertThat(saved.getVersion())
                             .isZero();
                 });
+    }
+
+    @Test
+    void failsWhenConcurrentRequestOnSameDevice() {
+        DeviceEntity device = deviceRepository.save(DeviceEntity.builder()
+                .name("device xyz")
+                .brand("Mac")
+                .state(DeviceState.AVAILABLE)
+                .build());
+
+        DeviceEntity loaded = deviceRepository.findById(device.getId())
+                .orElseThrow();
+
+        jdbcTemplate.update("update device set name = 'other', version = version + 1 where id = ?",
+                device.getId());
+
+        loaded.setName("mine");
+
+        Assertions.assertThatThrownBy(() -> deviceRepository.saveAndFlush(loaded))
+                .isInstanceOf(ObjectOptimisticLockingFailureException.class);
     }
 
     private String createDevice(String payload) throws Exception {
