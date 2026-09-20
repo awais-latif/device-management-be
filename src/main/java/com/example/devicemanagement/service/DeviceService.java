@@ -23,4 +23,13 @@ public interface DeviceService {
      * @throws com.example.devicemanagement.exception.DeviceNotFoundException if no device has that id
      */
     Device getDevice(UUID id);
+
+    /**
+     * Delete a device. If device is in-use state, it can not be deleted.
+     *
+     * @param id id of the device
+     * @throws com.example.devicemanagement.exception.DeviceNotFoundException if no device has that id
+     * @throws com.example.devicemanagement.exception.DeviceInUseException    if the device is in use
+     */
+    void deleteDevice(UUID id);
 }

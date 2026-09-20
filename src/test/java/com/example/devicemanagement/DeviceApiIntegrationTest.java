@@ -130,11 +130,64 @@ class DeviceApiIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void deletesDevice() throws Exception {
+        String id = createDevice("""
+                {"name":"device xyz","brand":"Mac","state":"available"}""");
+
+        mockMvc.perform(MockMvcRequestBuilders.delete(DEVICES + "/" + id))
+                .andExpect(MockMvcResultMatchers.status()
+                        .isNoContent());
+
+        Assertions.assertThat(deviceRepository.count())
+                .isZero();
+        mockMvc.perform(MockMvcRequestBuilders.get(DEVICES + "/" + id))
+                .andExpect(MockMvcResultMatchers.status()
+                        .isNotFound());
+    }
+
+    @Test
+    void notAllowToDeleteDeviceInUse() throws Exception {
+        String id = createDevice("""
+                {"name":"device xyz","brand":"Mac","state":"in-use"}""");
+
+        mockMvc.perform(MockMvcRequestBuilders.delete(DEVICES + "/" + id))
+                .andExpect(MockMvcResultMatchers.status()
+                        .isConflict())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.code")
+                        .value("DEVICE_IN_USE"));
+
+        Assertions.assertThat(deviceRepository.count())
+                .isOne();
+    }
+
+    @Test
+    void returnsNotFoundWhenDeletingUnknownId() throws Exception {
+        mockMvc.perform(MockMvcRequestBuilders.delete(DEVICES + "/" + UUID.randomUUID()))
+                .andExpect(MockMvcResultMatchers.status()
+                        .isNotFound())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.code")
+                        .value("DEVICE_NOT_FOUND"));
+    }
+
+    @Test
     void returnsNotFoundForUnknownId() throws Exception {
         mockMvc.perform(MockMvcRequestBuilders.get(DEVICES + "/" + UUID.randomUUID()))
                 .andExpect(MockMvcResultMatchers.status()
                         .isNotFound())
                 .andExpect(MockMvcResultMatchers.jsonPath("$.code")
                         .value("DEVICE_NOT_FOUND"));
+    }
+
+    private String createDevice(String payload) throws Exception {
+        String created = mockMvc.perform(MockMvcRequestBuilders.post(DEVICES)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(payload))
+                .andExpect(MockMvcResultMatchers.status()
+                        .isCreated())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        return JsonPath.read(created, "$.id");
     }
 }
