@@ -140,11 +140,9 @@ Liquibase.
 **Open Session in View is off.** With
 `spring.jpa.open-in-view=false`, database access stays within the service
 layer rather than relying on lazy loading during HTTP response processing.
-
-**The connection pool is deliberately small.** HikariCP is configured with a
-small maximum pool size, which is appropriate for a service of this size.
-These values can be changed through configuration if the deployment requires
-it.
+The device entity has no associations today, so nothing lazy loads and this
+setting has no impact. It is set now so the behavior does not change
+quietly when relations are added later (like Brand as Entity).
 
 ## Assumptions
 
@@ -175,14 +173,13 @@ Fetching
 Changing devices
 
 * Delete removes the row. There is no soft delete or archive (audit or history).
-* Patch covers full update as well, because every mutable field is required. So, if want full update provide all mutable
-  fields.
-* Only the fields which are in patch request body are considered for change. A field left out is not touched, so
-  there is no way to clear one and as all mutable field are required so it does not matter.
-* Sending not changed values in patch while device is in-use, are not rejected. Request will be rejected when values are
-  different.
-* If device is in-use and patch changes state along with other fields, it will not be allowed. State should be changed
-  first, then updates of other data are allowed.
+* Patch is the only update endpoint. No field is required in the body. Send all three mutable fields for a full
+  update, or send one field for a partial update.
+* Only the fields present in the body are applied. A field left out is not touched, so there is no way to clear one.
+  Name and brand can not be null anyway.
+* While a device is in-use, name and brand are compared by value, not by presence. The same value is accepted. A
+  different value is rejected with 409, also when the same request changes state.
+* To change name of an in-use device, change the state first, then send the new name or brand in a second request.
 
 ## Out of scope / future improvements
 
