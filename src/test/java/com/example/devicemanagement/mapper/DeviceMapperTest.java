@@ -64,11 +64,14 @@ class DeviceMapperTest {
                 .isEqualTo("Mac");
         Assertions.assertThat(entity.getState())
                 .isEqualTo(DeviceState.INACTIVE);
-        Assertions.assertThat(entity.getId())
-                .isNull();
+
         Assertions.assertThat(entity.getCreatedAt())
                 .isNull();
+        Assertions.assertThat(entity.getId())
+                .isNull();
         Assertions.assertThat(entity.getVersion())
+                .isNull();
+        Assertions.assertThat(entity.getUpdatedAt())
                 .isNull();
     }
 

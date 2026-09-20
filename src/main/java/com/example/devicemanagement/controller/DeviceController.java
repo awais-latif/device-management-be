@@ -2,7 +2,6 @@ package com.example.devicemanagement.controller;
 
 import java.util.UUID;
 
-import org.apache.commons.lang3.NotImplementedException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
@@ -50,7 +49,6 @@ public class DeviceController implements DevicesApi {
 
     @Override
     public ResponseEntity<Device> updateDevice(UUID id, PatchDeviceRequest patchDeviceRequest) {
-        //TODO implement
-        throw new NotImplementedException("Not Implemented");
+        return ResponseEntity.ok(deviceService.updateDevice(id, patchDeviceRequest));
     }
 }

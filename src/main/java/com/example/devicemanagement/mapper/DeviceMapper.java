@@ -2,6 +2,7 @@ package com.example.devicemanagement.mapper;
 
 import org.springframework.data.domain.Page;
 
+import com.example.devicemanagement.enums.DeviceState;
 import com.example.devicemanagement.generated.model.CreateDeviceRequest;
 import com.example.devicemanagement.generated.model.Device;
 import com.example.devicemanagement.generated.model.DevicePage;
@@ -30,7 +31,7 @@ public class DeviceMapper {
     }
 
     /**
-     * Convert CreateDeviceRequest object to DeviceEntity object.
+     * Convert CreateDeviceRequest object to DeviceEntity object, if state is not provided, it will be availabel as default.
      *
      * @param deviceRequest request object
      * @return null if request object is null, otherwise return DeviceEntity object
@@ -42,7 +43,7 @@ public class DeviceMapper {
         return DeviceEntity.builder()
                 .name(deviceRequest.getName())
                 .brand(deviceRequest.getBrand())
-                .state(deviceRequest.getState())
+                .state(deviceRequest.getState() != null ? deviceRequest.getState() : DeviceState.AVAILABLE)
                 .build();
     }
 

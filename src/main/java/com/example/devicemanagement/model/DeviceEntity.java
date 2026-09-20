@@ -10,14 +10,18 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 import jakarta.persistence.Version;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Entity
 @Table(name = "device")
@@ -28,15 +32,19 @@ import lombok.NoArgsConstructor;
 public class DeviceEntity {
 
     @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "id", nullable = false, updatable = false)
     private UUID id;
 
+    @Setter
     @Column(name = "name", nullable = false, length = 255)
     private String name;
 
+    @Setter
     @Column(name = "brand", nullable = false, length = 255)
     private String brand;
 
+    @Setter
     @Enumerated(EnumType.STRING)
     @Column(name = "state", nullable = false, length = 20)
     private DeviceState state;
@@ -50,20 +58,14 @@ public class DeviceEntity {
     @Version
     @Column(name = "version", nullable = false)
     private Long version;
-
+    
     @PrePersist
     void prePersist() {
-        if (id == null) {
-            id = UUID.randomUUID();
-        }
+        createdAt = OffsetDateTime.now(ZoneOffset.UTC);
+    }
 
-        if (createdAt == null) {
-            createdAt = OffsetDateTime.now(ZoneOffset.UTC);
-            ;
-        }
-
-        if (state == null) {
-            state = DeviceState.AVAILABLE;
-        }
+    @PreUpdate
+    void preUpdate() {
+        updatedAt = OffsetDateTime.now(ZoneOffset.UTC);
     }
 }

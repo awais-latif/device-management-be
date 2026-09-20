@@ -1,5 +1,6 @@
 package com.example.devicemanagement;
 
+import java.time.OffsetDateTime;
 import java.util.UUID;
 
 import org.assertj.core.api.Assertions;
@@ -327,6 +328,156 @@ class DeviceApiIntegrationTest extends AbstractIntegrationTest {
                         .value(0))
                 .andExpect(MockMvcResultMatchers.jsonPath("$.totalPages")
                         .value(0));
+    }
+
+    @Test
+    void updatesDevice() throws Exception {
+        String id = createDevice("""
+                {"name":"device xyz","brand":"Mac","state":"available"}""");
+
+        mockMvc.perform(MockMvcRequestBuilders.patch(DEVICES + "/" + id)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"name":"device abc","state":"inactive"}"""))
+                .andExpect(MockMvcResultMatchers.status()
+                        .isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.name")
+                        .value("device abc"))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.brand")
+                        .value("Mac"))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.state")
+                        .value("inactive"))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.updatedAt")
+                        .isNotEmpty());
+
+        Assertions.assertThat(deviceRepository.findAll())
+                .singleElement()
+                .satisfies(saved -> {
+                    Assertions.assertThat(saved.getName())
+                            .isEqualTo("device abc");
+                    Assertions.assertThat(saved.getBrand())
+                            .isEqualTo("Mac");
+                    Assertions.assertThat(saved.getState())
+                            .isEqualTo(DeviceState.INACTIVE);
+                    Assertions.assertThat(saved.getUpdatedAt())
+                            .isNotNull();
+                    Assertions.assertThat(saved.getVersion())
+                            .isEqualTo(1L);
+                });
+    }
+
+    @Test
+    void notAllowToChangeNameDeviceInUse() throws Exception {
+        String id = createDevice("""
+                {"name":"device xyz","brand":"Mac","state":"in-use"}""");
+
+        mockMvc.perform(MockMvcRequestBuilders.patch(DEVICES + "/" + id)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"name":"device abc"}"""))
+                .andExpect(MockMvcResultMatchers.status()
+                        .isConflict())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.code")
+                        .value("DEVICE_IN_USE"));
+
+        Assertions.assertThat(deviceRepository.findAll())
+                .singleElement()
+                .satisfies(saved -> {
+                    Assertions.assertThat(saved.getName())
+                            .isEqualTo("device xyz");
+                    Assertions.assertThat(saved.getVersion())
+                            .isZero();
+                });
+    }
+
+    @Test
+    void updateDeviceAfterStateChangeFromInUse() throws Exception {
+        String id = createDevice("""
+                {"name":"device xyz","brand":"Mac","state":"in-use"}""");
+
+        mockMvc.perform(MockMvcRequestBuilders.patch(DEVICES + "/" + id)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"state":"available"}"""))
+                .andExpect(MockMvcResultMatchers.status()
+                        .isOk());
+
+        mockMvc.perform(MockMvcRequestBuilders.patch(DEVICES + "/" + id)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"name":"device abc"}"""))
+                .andExpect(MockMvcResultMatchers.status()
+                        .isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.name")
+                        .value("device abc"));
+    }
+
+    @Test
+    void checkCreatedAtNotChangeOnUpdate() throws Exception {
+        String id = createDevice("""
+                {"name":"device xyz","brand":"Mac","state":"available"}""");
+        OffsetDateTime createdAt = deviceRepository.findAll()
+                .getFirst()
+                .getCreatedAt();
+
+        mockMvc.perform(MockMvcRequestBuilders.patch(DEVICES + "/" + id)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"name":"device abc"}"""))
+                .andExpect(MockMvcResultMatchers.status()
+                        .isOk());
+
+        Assertions.assertThat(deviceRepository.findAll()
+                        .getFirst()
+                        .getCreatedAt())
+                .isEqualTo(createdAt);
+    }
+
+    @Test
+    void patchResponseHasUpdatedAt() throws Exception {
+        String id = createDevice("""
+                {"name":"device xyz","brand":"Mac","state":"available"}""");
+        Assertions.assertThat(deviceRepository.findAll()
+                        .getFirst()
+                        .getUpdatedAt())
+                .isNull();
+
+        String body = mockMvc.perform(MockMvcRequestBuilders.patch(DEVICES + "/" + id)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"name":"abc"}"""))
+                .andExpect(MockMvcResultMatchers.status()
+                        .isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        Assertions.assertThat(OffsetDateTime.parse(JsonPath.read(body, "$.updatedAt")))
+                .isNotNull();
+    }
+
+    @Test
+    void patchThatChangesNothingLeavesTheRowAlone() throws Exception {
+        String id = createDevice("""
+                {"name":"device xyz","brand":"Mac","state":"available"}""");
+
+        mockMvc.perform(MockMvcRequestBuilders.patch(DEVICES + "/" + id)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"name":"device xyz","brand":"Mac","state":"available"}"""))
+                .andExpect(MockMvcResultMatchers.status()
+                        .isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.updatedAt")
+                        .doesNotExist());
+
+        Assertions.assertThat(deviceRepository.findAll())
+                .singleElement()
+                .satisfies(saved -> {
+                    Assertions.assertThat(saved.getUpdatedAt())
+                            .isNull();
+                    Assertions.assertThat(saved.getVersion())
+                            .isZero();
+                });
     }
 
     private String createDevice(String payload) throws Exception {

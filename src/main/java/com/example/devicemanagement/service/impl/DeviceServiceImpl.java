@@ -18,6 +18,7 @@ import com.example.devicemanagement.generated.model.CreateDeviceRequest;
 import com.example.devicemanagement.generated.model.Device;
 import com.example.devicemanagement.generated.model.DevicePage;
 import com.example.devicemanagement.generated.model.DeviceSortField;
+import com.example.devicemanagement.generated.model.PatchDeviceRequest;
 import com.example.devicemanagement.generated.model.SortDirection;
 import com.example.devicemanagement.mapper.DeviceMapper;
 import com.example.devicemanagement.model.DeviceEntity;
@@ -57,10 +58,44 @@ public class DeviceServiceImpl implements DeviceService {
                 .orElseThrow(() -> new DeviceNotFoundException(id));
 
         if (DeviceState.IN_USE == device.getState()) {
-            throw new DeviceInUseException(id);
+            throw new DeviceInUseException("Device is in use and cannot be deleted");
         }
 
         deviceRepository.delete(device);
+    }
+
+    @Override
+    @Transactional
+    public Device updateDevice(UUID id, PatchDeviceRequest request) {
+        DeviceEntity device = deviceRepository.findById(id)
+                .orElseThrow(() -> new DeviceNotFoundException(id));
+
+        if (DeviceState.IN_USE == device.getState()) {
+            validatedNameAndBrandChanged(device, request);
+        }
+
+        if (request.getName() != null) {
+            device.setName(request.getName());
+        }
+        if (request.getBrand() != null) {
+            device.setBrand(request.getBrand());
+        }
+        if (request.getState() != null) {
+            device.setState(request.getState());
+        }
+
+        return DeviceMapper.toDevice(deviceRepository.saveAndFlush(device));
+    }
+
+    private void validatedNameAndBrandChanged(DeviceEntity device, PatchDeviceRequest request) {
+        boolean nameChanged = request.getName() != null && !request.getName()
+                .equals(device.getName());
+        boolean branchChanged = request.getBrand() != null && !request.getBrand()
+                .equals(device.getBrand());
+
+        if (nameChanged || branchChanged) {
+            throw new DeviceInUseException("Device is in use, name and brand cannot be changed");
+        }
     }
 
     @Override

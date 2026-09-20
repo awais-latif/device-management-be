@@ -26,6 +26,7 @@ import com.example.devicemanagement.generated.model.CreateDeviceRequest;
 import com.example.devicemanagement.generated.model.Device;
 import com.example.devicemanagement.generated.model.DevicePage;
 import com.example.devicemanagement.generated.model.DeviceSortField;
+import com.example.devicemanagement.generated.model.PatchDeviceRequest;
 import com.example.devicemanagement.generated.model.SortDirection;
 import com.example.devicemanagement.service.DeviceService;
 
@@ -243,7 +244,7 @@ class DeviceControllerTest {
 
     @Test
     void notAllowToDeleteDeviceInUse() throws Exception {
-        Mockito.doThrow(new DeviceInUseException(ID))
+        Mockito.doThrow(new DeviceInUseException("Device is in use and cannot be deleted"))
                 .when(deviceService)
                 .deleteDevice(ID);
 
@@ -253,7 +254,7 @@ class DeviceControllerTest {
                 .andExpect(MockMvcResultMatchers.jsonPath("$.code")
                         .value("DEVICE_IN_USE"))
                 .andExpect(MockMvcResultMatchers.jsonPath("$.message")
-                        .value("Device is in use and cannot be deleted: " + ID));
+                        .value("Device is in use and cannot be deleted"));
     }
 
     @Test
@@ -375,5 +376,89 @@ class DeviceControllerTest {
                         .value("INTERNAL_SERVER_ERROR"))
                 .andExpect(MockMvcResultMatchers.jsonPath("$.message")
                         .value("An unexpected error occurred"));
+    }
+
+    @Test
+    void updatesDevice() throws Exception {
+        Mockito.when(deviceService.updateDevice(ArgumentMatchers.eq(ID),
+                        ArgumentMatchers.any(PatchDeviceRequest.class)))
+                .thenReturn(new Device()
+                        .id(ID)
+                        .name("device abc")
+                        .brand("Mac")
+                        .state(DeviceState.AVAILABLE)
+                        .createdAt(OffsetDateTime.parse("2026-09-19T16:07:48.163Z"))
+                        .updatedAt(OffsetDateTime.parse("2026-09-20T09:00:00.000Z")));
+
+        mockMvc.perform(MockMvcRequestBuilders.patch(DEVICES + "/" + ID)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"name":"device abc"}"""))
+                .andExpect(MockMvcResultMatchers.status()
+                        .isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.name")
+                        .value("device abc"))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.updatedAt")
+                        .value("2026-09-20T09:00:00Z"));
+    }
+
+    @Test
+    void notAllowToUpdateDeviceInUse() throws Exception {
+        Mockito.when(deviceService.updateDevice(ArgumentMatchers.eq(ID),
+                        ArgumentMatchers.any(PatchDeviceRequest.class)))
+                .thenThrow(new DeviceInUseException("Device is in use, name and brand cannot be changed"));
+
+        mockMvc.perform(MockMvcRequestBuilders.patch(DEVICES + "/" + ID)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"name":"device abc"}"""))
+                .andExpect(MockMvcResultMatchers.status()
+                        .isConflict())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.code")
+                        .value("DEVICE_IN_USE"));
+    }
+
+    @Test
+    void updateNotExistDevice() throws Exception {
+        Mockito.when(deviceService.updateDevice(ArgumentMatchers.eq(ID),
+                        ArgumentMatchers.any(PatchDeviceRequest.class)))
+                .thenThrow(new DeviceNotFoundException(ID));
+
+        mockMvc.perform(MockMvcRequestBuilders.patch(DEVICES + "/" + ID)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"name":"device abc"}"""))
+                .andExpect(MockMvcResultMatchers.status()
+                        .isNotFound())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.code")
+                        .value("DEVICE_NOT_FOUND"));
+    }
+
+    @Test
+    void rejectsBlankNameOnUpdate() throws Exception {
+        mockMvc.perform(MockMvcRequestBuilders.patch(DEVICES + "/" + ID)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"name":""}"""))
+                .andExpect(MockMvcResultMatchers.status()
+                        .isBadRequest())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.validationErrors[0].field")
+                        .value("name"));
+
+        Mockito.verifyNoInteractions(deviceService);
+    }
+
+    @Test
+    void rejectsBlankBrandOnUpdate() throws Exception {
+        mockMvc.perform(MockMvcRequestBuilders.patch(DEVICES + "/" + ID)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"brand":""}"""))
+                .andExpect(MockMvcResultMatchers.status()
+                        .isBadRequest())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.validationErrors[0].field")
+                        .value("brand"));
+
+        Mockito.verifyNoInteractions(deviceService);
     }
 }
