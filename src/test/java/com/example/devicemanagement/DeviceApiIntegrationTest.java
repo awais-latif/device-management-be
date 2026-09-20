@@ -1,5 +1,7 @@
 package com.example.devicemanagement;
 
+import java.util.UUID;
+
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -16,6 +18,7 @@ import com.example.devicemanagement.configuration.AbstractIntegrationTest;
 import com.example.devicemanagement.enums.DeviceState;
 import com.example.devicemanagement.model.DeviceEntity;
 import com.example.devicemanagement.repository.DeviceEntityRepository;
+import com.jayway.jsonpath.JsonPath;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -95,5 +98,43 @@ class DeviceApiIntegrationTest extends AbstractIntegrationTest {
                 .andExpect(MockMvcResultMatchers.status().isBadRequest());
 
         Assertions.assertThat(deviceRepository.count()).isZero();
+    }
+
+    @Test
+    void getDeviceById() throws Exception {
+        String created = mockMvc.perform(MockMvcRequestBuilders.post(DEVICES)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"name":"device xyz","brand":"Mac","state":"in-use"}"""))
+                .andExpect(MockMvcResultMatchers.status()
+                        .isCreated())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        String id = JsonPath.read(created, "$.id");
+
+        mockMvc.perform(MockMvcRequestBuilders.get(DEVICES + "/" + id))
+                .andExpect(MockMvcResultMatchers.status()
+                        .isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.id")
+                        .value(id))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.name")
+                        .value("device xyz"))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.brand")
+                        .value("Mac"))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.state")
+                        .value("in-use"))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.createdAt")
+                        .isNotEmpty());
+    }
+
+    @Test
+    void returnsNotFoundForUnknownId() throws Exception {
+        mockMvc.perform(MockMvcRequestBuilders.get(DEVICES + "/" + UUID.randomUUID()))
+                .andExpect(MockMvcResultMatchers.status()
+                        .isNotFound())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.code")
+                        .value("DEVICE_NOT_FOUND"));
     }
 }
